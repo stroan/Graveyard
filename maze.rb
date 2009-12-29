@@ -4,11 +4,8 @@ require 'vertex'
 class Maze
   WallHeight = 1
   
-  def initialize
-    @grid = [ [ true, true, true, true, true ],
-             [ true, false, true, false, true ],
-             [ true, false, false, false, true ],
-             [ true, true, true, true, true ] ]
+  def initialize(grid)
+    @grid = grid
   end
 
   def genGeometry

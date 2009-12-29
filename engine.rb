@@ -40,6 +40,8 @@ class Engine
     while running?
       updateTime
 
+      SDL::Key.scan
+
       state = @states[0]
       state.render
       state.update
@@ -69,6 +71,8 @@ class Engine
       case event
       when SDL::Event::Quit
         quit
+      when SDL::Event::KeyDown
+        @states[0].keyDown(event) if !@states.empty?
       end 
     end
   end

@@ -28,4 +28,8 @@ class GameState
   def update
     nil
   end
+
+  def keyDown(event)
+    nil
+  end
 end

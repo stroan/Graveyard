@@ -3,6 +3,7 @@ require 'sdl'
 
 require 'gamestate'
 require 'maze'
+require 'levelfile'
 
 include Gl,Glu
 
@@ -14,8 +15,13 @@ class MainState < GameState
   end
 
   def start
-    @maze = Maze.new
+    @level = LevelFile.new("data/levels/test1.lvl")
+
+    @maze = Maze.new(@level.walls)
     @maze.genGeometry
+
+    @playerPos = @level.start.map {|x| x.to_f + 0.5 }
+    @playerOrientation = 0.0
   end
 
   def stop
@@ -43,7 +49,9 @@ class MainState < GameState
   def render
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity
-    gluLookAt(0.5,0.5,0.5, 1,0.5,1, 0,1,0)
+    gluLookAt(@playerPos[0],0.5,@playerPos[1], 
+              @playerPos[0] + Math.cos(@playerOrientation),0.5,@playerPos[1] + Math.sin(@playerOrientation), 
+              0,1,0)
     glPushMatrix
 
     @maze.render
@@ -53,9 +61,17 @@ class MainState < GameState
   end
 
   def update
-    if @engine.lastTicks - @lastPrint > 1000 then
+    if @engine.lastTicks - @lastPrint > 200 then
       puts @engine.frameRate.to_s
       @lastPrint = @engine.lastTicks
+    end
+
+    if (SDL::Key.press?(SDL::Key::LEFT)) then
+      @playerOrientation -= Math::PI * @engine.timeDelta
+    end
+
+    if (SDL::Key.press?(SDL::Key::RIGHT)) then
+      @playerOrientation += Math::PI * @engine.timeDelta
     end
   end
 end
