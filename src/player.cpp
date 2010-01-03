@@ -1,7 +1,8 @@
 #include "player.h"
 
-#include <cmath>
+#include <windows.h>
 #include <GL/glu.h>
+#include <cmath>
 
 #include "levelfile.h"
 #include "mainstate.h"
@@ -18,7 +19,7 @@ Player::Player(MainState* s) {
 }
 
 void Player::TurnLeft(float timeDelta) {
-  float speed = M_PI; //Measured in radians per second;
+  float speed = 3.141596f; //Measured in radians per second;
   orientation -= speed * timeDelta;
 }
 
