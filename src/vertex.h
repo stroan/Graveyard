@@ -15,4 +15,16 @@ public:
   static void SetGLModes();
 };
 
+class VertPosTex {
+private:
+  float data[5];
+
+public:
+  VertPosTex(float* pos, float* tex);
+  VertPosTex(float x, float y, float z, float u, float v);
+
+  static void FillBuffer(const std::vector<VertPosTex>& verts);
+  static void SetGLModes();
+};
+
 #endif

@@ -16,6 +16,7 @@ private:
 
   int lastSecond;
   float smallestFPS;
+  bool wireframe;
   
 public:
   MainState(Engine* e);
@@ -26,7 +27,10 @@ public:
   virtual void Render();
   virtual void Update();
 
+  virtual void OnKeyDown(SDL_KeyboardEvent* e);
+
   LevelFile* GetLevelFile();
+  Maze* GetMaze();
 };
 
 #endif

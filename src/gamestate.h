@@ -1,6 +1,8 @@
 #ifndef GAMESTATE_H
 #define GAMESTATE_H
 
+#include <SDL.h>
+
 class Engine;
 
 class GameState {
@@ -19,6 +21,8 @@ public:
 
   virtual void Render();
   virtual void Update();
+
+  virtual void OnKeyDown(SDL_KeyboardEvent* e);
 };
 
 #endif

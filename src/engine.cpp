@@ -56,6 +56,8 @@ void Engine::Run() {
     s->Update();
 
     PumpEvents();
+
+	SDL_GL_SwapBuffers();
   }
 }
 
@@ -94,11 +96,14 @@ float Engine::GetFrameRate() const {
 }
 
 void Engine::PumpEvents() {
-  SDL_Event evnt;  
+  SDL_Event evnt;
   while (SDL_PollEvent(&evnt)) {
     switch (evnt.type) {
     case SDL_QUIT:
       Quit(); 
+      break;
+    case SDL_KEYDOWN:
+      states.front()->OnKeyDown(&evnt.key);
       break;
     }
   }

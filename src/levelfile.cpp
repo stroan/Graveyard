@@ -19,6 +19,12 @@ bool LevelFile::IsWall(int x, int y) const {
   return grid[y * gridWidth + x] == 1;
 }
 
+int LevelFile::IsDoor(int x, int y) const {
+  int cell = grid[y * gridWidth + x];
+  if (cell != 2 && cell != 3) { return 0; }
+  return cell - 1;
+}
+
 int LevelFile::GetStartX() const {
   return startX;
 }

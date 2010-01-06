@@ -8,3 +8,4 @@ void GameState::Pause() { }
 void GameState::Resume() { }
 void GameState::Render() { }
 void GameState::Update() { }
+void GameState::OnKeyDown(SDL_KeyboardEvent *e) { }

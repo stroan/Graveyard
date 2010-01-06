@@ -17,6 +17,7 @@ public:
   int GetGridWidth() const;
   int GetGridHeight() const;
   bool IsWall(int x, int y) const;
+  int IsDoor(int x, int y) const;
 
   int GetStartX() const;
   int GetStartY() const;

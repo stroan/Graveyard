@@ -1,7 +1,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-class MainState;
+class Maze;
 
 class Player {
 protected:
@@ -10,14 +10,21 @@ protected:
 
   float orientation;
 
-  MainState* state;
+  Maze* maze;
 
 public:
-  Player(MainState* s);
+  Player(Maze* m);
 
   void TurnLeft(float timeDelta);
+  void TurnRight(float timeDelta);
+
+  void MoveForward(float timeDelta);
 
   void SetGLCamera();
+
+  float GetX() const;
+  float GetY() const;
+  float GetOrientation() const;
 };
 
 #endif

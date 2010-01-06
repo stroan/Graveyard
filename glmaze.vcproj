@@ -191,6 +191,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\texture.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\tile.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\vertex.h"
 				>
 			</File>
@@ -232,6 +240,14 @@
 			</File>
 			<File
 				RelativePath=".\src\player.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\texture.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\tile.cpp"
 				>
 			</File>
 			<File
