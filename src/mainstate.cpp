@@ -11,6 +11,8 @@
 #include "maze.h"
 #include "player.h"
 
+#include "Model_3DS.h"
+
 MainState::MainState(Engine* e) : GameState(e) { }
 MainState::~MainState() { }
 
@@ -21,6 +23,19 @@ void MainState::Init() {
   maze->InitGeometry();
 
   player = maze->GetPlayer();
+
+  sphere = new Model_3DS();
+  sphere->Load("data/models/sphere.3DS");
+  sphere->shownormals = true;
+  sphere->lit = false;
+
+  badguy = new Model_3DS();
+  badguy->Load("data/models/badguy.3DS");
+  badguy->scale = 0.015f;
+
+  badguyGunLeft = badguy->GetObjectByName("LeftGun");
+  badguyGunRight = badguy->GetObjectByName("RightGun");
+  gunRotLeft = true;
 
   lastSecond = 0;
   smallestFPS = 0;
@@ -33,6 +48,16 @@ void MainState::Resume() {
 
   glDisable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
+
+  glEnable(GL_LIGHTING);
+  float ambient[] = {0.1f, 0.1f, 0.1f, 1.0f};
+  float diffuse[] = {1.0f, 1.0f, 1.0f, 1.0f};
+  float position[] = {1.0f, 1.0f, 1.0f, 0.0f};
+
+  glEnable(GL_LIGHT0);
+  glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+  glLightfv(GL_LIGHT0, GL_POSITION, position);
 
   // Set projection matrix.
   glMatrixMode(GL_PROJECTION);
@@ -52,10 +77,31 @@ void MainState::Render() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glLoadIdentity();
+
+  glEnable(GL_LIGHTING);
+  float ambient[] = {0.1f, 0.1f, 0.1f, 1.0f};
+  float diffuse[] = {1.0f, 1.0f, 1.0f, 1.0f};
+  float position[] = {0.0f, 0.0f, 0.05f, 0.0f};
+  float spotDir[] = {0.0f, 0.0f, -1.0f, 0.0f};
+
+  glEnable(GL_LIGHT0);
+  glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+  glLightfv(GL_LIGHT0, GL_POSITION, position);
+  glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotDir);
+  glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 40);
+  glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 7);
+
   player->SetGLCamera();
   glPushMatrix();
 
+  
+
   maze->Render();
+
+  glTranslatef(2,0,2);
+  glRotatef(90,0,1,0);
+  badguy->Draw();
 
   glPopMatrix();
   //SDL_GL_SwapBuffers();
@@ -85,6 +131,19 @@ void MainState::Update() {
   }
 
   maze->Update(engine->GetTimeDelta());
+
+  if (gunRotLeft) {
+    badguyGunLeft->rot.y -= 10.0f * engine->GetTimeDelta();
+    badguyGunRight->rot.y = badguyGunLeft->rot.y;
+
+    if (badguyGunLeft->rot.y < -10.0f) { gunRotLeft = false; }
+  }
+  else {
+    badguyGunLeft->rot.y += 10.0f * engine->GetTimeDelta();
+    badguyGunRight->rot.y = badguyGunLeft->rot.y;
+
+    if (badguyGunLeft->rot.y > 10.0f) { gunRotLeft = true; }
+  }
 }
 
 void MainState::OnKeyDown(SDL_KeyboardEvent* e) {

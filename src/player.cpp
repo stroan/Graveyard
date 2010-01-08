@@ -1,6 +1,5 @@
 #include "player.h"
 
-#include <windows.h>
 #include <GL/glew.h>
 #include <GL/glu.h>
 #include <cmath>
@@ -37,8 +36,8 @@ void Player::MoveForward(float timeDelta) {
 }
 
 void Player::SetGLCamera() {
-  gluLookAt(x, 0.5f, y,
-            x + cos(orientation), 0.5f, y + sin(orientation),
+  gluLookAt(x, 0.55f, y,
+            x + cos(orientation), 0.55f, y + sin(orientation),
             0, 1, 0);
 }
 

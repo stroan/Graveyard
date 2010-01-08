@@ -15,6 +15,7 @@ public:
   void Bind();
 
   static Texture* LoadFromFile(const std::string& filename);
+  static Texture* ColorTexture(int r, int g, int b);
 };
 
 #endif

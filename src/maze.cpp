@@ -46,7 +46,7 @@ void Maze::InitGeometry() {
 
   float wallHeight = 1;
 
-  std::vector<VertPosTex> v;
+  std::vector<VertPosTexNorm> v;
 
   for (int row = 1; row < h - 1; row++) {
     int startTop = -1;
@@ -60,26 +60,26 @@ void Maze::InitGeometry() {
       if (downCell && !thisCell && startBottom == -1) { startBottom = col; }
 
       if (startTop != -1 && (thisCell|| !upCell)) {
-        v.push_back(VertPosTex(col, wallHeight, row,        (col - startTop), 1));
-        v.push_back(VertPosTex(startTop, 0, row,            0, 0));
-        v.push_back(VertPosTex(startTop, wallHeight, row,   0, 1));
+        v.push_back(VertPosTexNorm(col, wallHeight, row,        (col - startTop), 1,    0,0,1));
+        v.push_back(VertPosTexNorm(startTop, 0, row,            0, 0,                   0,0,1));
+        v.push_back(VertPosTexNorm(startTop, wallHeight, row,   0, 1,                   0,0,1));
 
-        v.push_back(VertPosTex(col, wallHeight, row,        (col - startTop), 1));
-        v.push_back(VertPosTex(col, 0, row,                 (col - startTop), 0));
-        v.push_back(VertPosTex(startTop, 0, row,            0, 0));
+        v.push_back(VertPosTexNorm(col, wallHeight, row,        (col - startTop), 1,    0,0,1));
+        v.push_back(VertPosTexNorm(col, 0, row,                 (col - startTop), 0,    0,0,1));
+        v.push_back(VertPosTexNorm(startTop, 0, row,            0, 0,                   0,0,1));
     
         numTris += 2;
         startTop = -1;
       }
 
       if (startBottom != -1 && (thisCell || !downCell)) {
-        v.push_back(VertPosTex(col, wallHeight, row + 1,          (col - startBottom), 1));
-        v.push_back(VertPosTex(startBottom, 0, row + 1,           0,0));
-        v.push_back(VertPosTex(startBottom, wallHeight, row + 1,  0, 1));
+        v.push_back(VertPosTexNorm(col, wallHeight, row + 1,          (col - startBottom), 1,       0,0,-1));
+        v.push_back(VertPosTexNorm(startBottom, 0, row + 1,           0,0,                          0,0,-1));
+        v.push_back(VertPosTexNorm(startBottom, wallHeight, row + 1,  0, 1,                         0,0,-1));
 
-        v.push_back(VertPosTex(col, wallHeight, row + 1,          (col - startBottom), 1));
-        v.push_back(VertPosTex(col, 0, row + 1,                   (col - startBottom), 0));
-        v.push_back(VertPosTex(startBottom, 0, row + 1,           0, 0));
+        v.push_back(VertPosTexNorm(col, wallHeight, row + 1,          (col - startBottom), 1,       0,0,-1));
+        v.push_back(VertPosTexNorm(col, 0, row + 1,                   (col - startBottom), 0,       0,0,-1));
+        v.push_back(VertPosTexNorm(startBottom, 0, row + 1,           0, 0,                         0,0,-1));
     
         numTris += 2;
         startBottom = -1;
@@ -99,26 +99,26 @@ void Maze::InitGeometry() {
       if (rightCell && !thisCell && startRight == -1) { startRight = row; }
 
       if (startLeft != -1 && (thisCell|| !leftCell)) {
-        v.push_back(VertPosTex(col, wallHeight, startLeft,    0, 1));
-        v.push_back(VertPosTex(col, 0, startLeft,             0, 0));
-        v.push_back(VertPosTex(col, wallHeight, row,          (startLeft - row), 1));
+        v.push_back(VertPosTexNorm(col, wallHeight, startLeft,    0, 1,                     1,0,0));
+        v.push_back(VertPosTexNorm(col, 0, startLeft,             0, 0,                     1,0,0));
+        v.push_back(VertPosTexNorm(col, wallHeight, row,          (startLeft - row), 1,     1,0,0));
 
-        v.push_back(VertPosTex(col, wallHeight, row,          (startLeft - row), 1));
-        v.push_back(VertPosTex(col, 0, startLeft,             0, 0));
-        v.push_back(VertPosTex(col, 0, row,                   (startLeft - row), 0));
+        v.push_back(VertPosTexNorm(col, wallHeight, row,          (startLeft - row), 1,         1,0,0));
+        v.push_back(VertPosTexNorm(col, 0, startLeft,             0, 0,                         1,0,0));
+        v.push_back(VertPosTexNorm(col, 0, row,                   (startLeft - row), 0,         1,0,0));
     
         numTris += 2;
         startLeft = -1;
       }
 
       if (startRight != -1 && (thisCell || !rightCell)) {
-        v.push_back(VertPosTex(col + 1, wallHeight, startRight,   0, 1));
-        v.push_back(VertPosTex(col + 1, 0, startRight,            0, 0));
-        v.push_back(VertPosTex(col + 1, wallHeight, row,          (startRight - row), 1));
+        v.push_back(VertPosTexNorm(col + 1, wallHeight, startRight,   0, 1,                     -1,0,0));
+        v.push_back(VertPosTexNorm(col + 1, 0, startRight,            0, 0,                     -1,0,0));
+        v.push_back(VertPosTexNorm(col + 1, wallHeight, row,          (startRight - row), 1,    -1,0,0));
 
-        v.push_back(VertPosTex(col + 1, wallHeight, row,          (startRight - row), 1));
-        v.push_back(VertPosTex(col + 1, 0, startRight,            0, 0));
-        v.push_back(VertPosTex(col + 1, 0, row,                   (startRight - row), 0));
+        v.push_back(VertPosTexNorm(col + 1, wallHeight, row,          (startRight - row), 1,    -1,0,0));
+        v.push_back(VertPosTexNorm(col + 1, 0, startRight,            0, 0,                     -1,0,0));
+        v.push_back(VertPosTexNorm(col + 1, 0, row,                   (startRight - row), 0,    -1,0,0));
     
         numTris += 2;
         startRight = -1;
@@ -128,7 +128,7 @@ void Maze::InitGeometry() {
 
   glGenBuffers(1,&wallsVBO);
   glBindBuffer(GL_ARRAY_BUFFER, wallsVBO);
-  VertPosTex::FillBuffer(v);
+  VertPosTexNorm::FillBuffer(v);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   wallTex = Texture::LoadFromFile("data/textures/wall.bmp");
@@ -136,37 +136,37 @@ void Maze::InitGeometry() {
   // *************************************************************************
   // Make door
   
-  std::vector<VertPosTex> doorV;
+  std::vector<VertPosTexNorm> doorV;
 
-  doorV.push_back(VertPosTex(-0.5f, 1, -0.25f,     0,1));
-  doorV.push_back(VertPosTex(-0.5f, 0, -0.25f,     0,0));
-  doorV.push_back(VertPosTex(0.5f, 0, -0.25f,     0.66f,0));
+  doorV.push_back(VertPosTexNorm(-0.5f, 1, -0.25f,     0,1,       0,0,-1));
+  doorV.push_back(VertPosTexNorm(-0.5f, 0, -0.25f,     0,0,       0,0,-1));
+  doorV.push_back(VertPosTexNorm(0.5f, 0, -0.25f,     0.66f,0,    0,0,-1));
 
-  doorV.push_back(VertPosTex(-0.5f, 1, -0.25f,     0,1));
-  doorV.push_back(VertPosTex(0.5f, 0, -0.25f,     0.66f,0));
-  doorV.push_back(VertPosTex(0.5f, 1, -0.25f,     0.66f,1));
+  doorV.push_back(VertPosTexNorm(-0.5f, 1, -0.25f,     0,1,       0,0,-1));
+  doorV.push_back(VertPosTexNorm(0.5f, 0, -0.25f,     0.66f,0,    0,0,-1));
+  doorV.push_back(VertPosTexNorm(0.5f, 1, -0.25f,     0.66f,1,    0,0,-1));
 
-  doorV.push_back(VertPosTex(-0.5f, 1, 0.25f,     0,1));
-  doorV.push_back(VertPosTex(-0.5f, 0, 0.25f,     0,0));
-  doorV.push_back(VertPosTex(0.5f, 0, 0.25f,     0.66f,0));
+  doorV.push_back(VertPosTexNorm(-0.5f, 1, 0.25f,     0,1,        0,0,1));
+  doorV.push_back(VertPosTexNorm(-0.5f, 0, 0.25f,     0,0,        0,0,1));
+  doorV.push_back(VertPosTexNorm(0.5f, 0, 0.25f,     0.66f,0,     0,0,1));
 
-  doorV.push_back(VertPosTex(-0.5f, 1, 0.25f,     0,1));
-  doorV.push_back(VertPosTex(0.5f, 0, 0.25f,     0.66f,0));
-  doorV.push_back(VertPosTex(0.5f, 1, 0.25f,     0.66f,1));
+  doorV.push_back(VertPosTexNorm(-0.5f, 1, 0.25f,     0,1,        0,0,1));
+  doorV.push_back(VertPosTexNorm(0.5f, 0, 0.25f,     0.66f,0,     0,0,1));
+  doorV.push_back(VertPosTexNorm(0.5f, 1, 0.25f,     0.66f,1,     0,0,1));
 
-  doorV.push_back(VertPosTex(-0.5f, 1, -0.25f,     0.66f,1));
-  doorV.push_back(VertPosTex(-0.5f, 1, 0.25f,      1,1));
-  doorV.push_back(VertPosTex(-0.5f, 0, 0.25f,      1,0));
+  doorV.push_back(VertPosTexNorm(-0.5f, 1, -0.25f,     0.66f,1,   -1,0,0));
+  doorV.push_back(VertPosTexNorm(-0.5f, 1, 0.25f,      1,1,       -1,0,0));
+  doorV.push_back(VertPosTexNorm(-0.5f, 0, 0.25f,      1,0,       -1,0,0));
 
-  doorV.push_back(VertPosTex(-0.5f, 1, -0.25f,     0.66f,1));
-  doorV.push_back(VertPosTex(-0.5f, 0, 0.25f,      1,0));
-  doorV.push_back(VertPosTex(-0.5f, 0, -0.25f,     0.66f,0));
+  doorV.push_back(VertPosTexNorm(-0.5f, 1, -0.25f,     0.66f,1,   -1,0,0));
+  doorV.push_back(VertPosTexNorm(-0.5f, 0, 0.25f,      1,0,       -1,0,0));
+  doorV.push_back(VertPosTexNorm(-0.5f, 0, -0.25f,     0.66f,0,   -1,0,0));
 
   numDoorTris = 6;
 
   glGenBuffers(1,&doorVBO);
   glBindBuffer(GL_ARRAY_BUFFER, doorVBO);
-  VertPosTex::FillBuffer(doorV);
+  VertPosTexNorm::FillBuffer(doorV);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   doorTex = Texture::LoadFromFile("data/textures/door.bmp");
@@ -176,12 +176,12 @@ void Maze::Render() {
   glEnable(GL_TEXTURE_2D);
   wallTex->Bind();
   glBindBuffer(GL_ARRAY_BUFFER, wallsVBO);
-  VertPosTex::SetGLModes();
+  VertPosTexNorm::SetGLModes();
   glDrawArrays(GL_TRIANGLES, 0, numTris * 3);
 
   doorTex->Bind();
   glBindBuffer(GL_ARRAY_BUFFER, doorVBO);
-  VertPosTex::SetGLModes();
+  VertPosTexNorm::SetGLModes();
   BOOST_FOREACH(Door* p, doors) {
     glPushMatrix();
     p->SetTransform();

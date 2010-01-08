@@ -187,6 +187,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Model_3DS.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\player.h"
 				>
 			</File>
@@ -236,6 +240,10 @@
 			</File>
 			<File
 				RelativePath=".\src\maze.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Model_3DS.cpp"
 				>
 			</File>
 			<File

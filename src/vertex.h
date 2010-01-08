@@ -27,4 +27,16 @@ public:
   static void SetGLModes();
 };
 
+class VertPosTexNorm {
+private:
+  float data[8];
+
+public:
+  VertPosTexNorm(float* pos, float* tex, float* norm);
+  VertPosTexNorm(float x, float y, float z, float u, float v, float nx, float ny, float nz);
+
+  static void FillBuffer(const std::vector<VertPosTexNorm>& verts);
+  static void SetGLModes();
+};
+
 #endif

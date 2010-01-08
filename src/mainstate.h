@@ -3,6 +3,7 @@
 
 #include "gamestate.h"
 #include "player.h"
+#include "Model_3DS.h"
 
 class LevelFile;
 class Maze;
@@ -13,6 +14,12 @@ private:
   Maze* maze;
   
   Player* player;
+
+  Model_3DS* sphere;
+  Model_3DS* badguy;
+  Model_3DS::Object* badguyGunLeft;
+  Model_3DS::Object* badguyGunRight;
+  bool gunRotLeft;
 
   int lastSecond;
   float smallestFPS;
