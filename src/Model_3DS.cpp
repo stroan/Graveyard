@@ -82,6 +82,8 @@
 
 #include "Model_3DS.h"
 
+#include <cstring>
+#include <sstream>
 #include <math.h>			// Header file for the math library
 #include <GL/glew.h>
 #include <GL/gl.h>			// Header file for the OpenGL32 library
@@ -190,6 +192,21 @@ void Model_3DS::Load(char *name)
 	// holds the main chunk header
 	ChunkHeader main;
 
+  std::string filename(name);
+  size_t slashIndex = filename.find_last_of("/");
+  std::string pathString = "./";
+  std::string nameString = filename;
+
+  if (slashIndex != std::string::npos) {
+    pathString = filename.substr(0, slashIndex + 1);
+    nameString = filename.substr(slashIndex + 1);
+  }
+
+  strcpy(path,pathString.c_str());
+  
+  /*
+  fprintf(stderr, "** %s %s **\n", pathString.c_str(), nameString.c_str());
+
 	// strip "'s
 	if (strstr(name, "\""))
 		name = strtok(name, "\"");
@@ -221,8 +238,12 @@ void Model_3DS::Load(char *name)
 		path[src-name] = 0;
 	}
 
+  fprintf(stderr, "before %s \n", path);*/
+
 	// Load the file
 	bin3ds = fopen(name,"rb");
+
+  fprintf(stderr, "after \n");
 
 	// Make sure we are at the beginning
 	fseek(bin3ds, 0, SEEK_SET);

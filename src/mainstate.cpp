@@ -25,13 +25,13 @@ void MainState::Init() {
 
   player = maze->GetPlayer();
 
-  gun = new Model_3DS();
-  gun->Load("data/models/gun.3DS");
-  gun->scale = 0.01f;
-
   exclm = new Model_3DS();
   exclm->Load("data/models/exclm.3DS");
   exclm->scale = 0.01f;
+
+  gun = new Model_3DS();
+  gun->Load("data/models/gun.3DS");
+  gun->scale = 0.01f;
 
   bobbingexcl = 0.0f;
   bobbingup = true;
