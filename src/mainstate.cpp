@@ -10,6 +10,7 @@
 #include "levelfile.h"
 #include "maze.h"
 #include "player.h"
+#include "badguy.h"
 
 #include "Model_3DS.h"
 
@@ -24,10 +25,16 @@ void MainState::Init() {
 
   player = maze->GetPlayer();
 
-  sphere = new Model_3DS();
-  sphere->Load("data/models/sphere.3DS");
-  sphere->shownormals = true;
-  sphere->lit = false;
+  gun = new Model_3DS();
+  gun->Load("data/models/gun.3DS");
+  gun->scale = 0.01f;
+
+  exclm = new Model_3DS();
+  exclm->Load("data/models/exclm.3DS");
+  exclm->scale = 0.01f;
+
+  bobbingexcl = 0.0f;
+  bobbingup = true;
 
   badguy = new Model_3DS();
   badguy->Load("data/models/badguy.3DS");
@@ -49,16 +56,6 @@ void MainState::Resume() {
   glDisable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
 
-  glEnable(GL_LIGHTING);
-  float ambient[] = {0.1f, 0.1f, 0.1f, 1.0f};
-  float diffuse[] = {1.0f, 1.0f, 1.0f, 1.0f};
-  float position[] = {1.0f, 1.0f, 1.0f, 0.0f};
-
-  glEnable(GL_LIGHT0);
-  glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
-  glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
-  glLightfv(GL_LIGHT0, GL_POSITION, position);
-
   // Set projection matrix.
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -78,19 +75,22 @@ void MainState::Render() {
 
   glLoadIdentity();
 
+
   glEnable(GL_LIGHTING);
-  float ambient[] = {0.1f, 0.1f, 0.1f, 1.0f};
+  float ambient[] = {1.95f, 1.95f, 1.95f, 1.0f};
   float diffuse[] = {1.0f, 1.0f, 1.0f, 1.0f};
   float position[] = {0.0f, 0.0f, 0.05f, 0.0f};
-  float spotDir[] = {0.0f, 0.0f, -1.0f, 0.0f};
 
   glEnable(GL_LIGHT0);
   glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
   glLightfv(GL_LIGHT0, GL_POSITION, position);
-  glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotDir);
-  glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 40);
-  glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 7);
+
+  glPushMatrix();
+  glTranslatef(-0.25f,-0.275,-0.2);
+  glRotatef(180,0,1,0);
+  gun->Draw();
+  glPopMatrix();
 
   player->SetGLCamera();
   glPushMatrix();
@@ -99,9 +99,20 @@ void MainState::Render() {
 
   maze->Render();
 
-  glTranslatef(2,0,2);
-  glRotatef(90,0,1,0);
-  badguy->Draw();
+  glPushMatrix();
+  glTranslatef(level->GetEndX() + 0.5f, 0.3f + bobbingexcl, level->GetEndY() + 0.5f);
+  exclm->Draw();
+  glPopMatrix();
+
+  int numBadguys = maze->GetNumBadguys();
+  for (int i = 0; i < numBadguys; i++) {
+    Badguy* b = maze->GetBadguy(i);
+    glPushMatrix();
+    glTranslatef(b->GetX(), 0, b->GetY());
+    glRotatef(b->GetOrientation(), 0, 1, 0);
+    badguy->Draw();
+    glPopMatrix();
+  }
 
   glPopMatrix();
   //SDL_GL_SwapBuffers();
@@ -144,14 +155,26 @@ void MainState::Update() {
 
     if (badguyGunLeft->rot.y > 10.0f) { gunRotLeft = true; }
   }
+
+  if (bobbingup) {
+    bobbingexcl += engine->GetTimeDelta();
+    if (bobbingexcl > 0.2f) { bobbingup = false; } 
+  }
+  else {
+    bobbingexcl -= engine->GetTimeDelta();
+    if (bobbingexcl < -0.2f) { bobbingup = true; } 
+  }
 }
 
 void MainState::OnKeyDown(SDL_KeyboardEvent* e) {
   if (e->keysym.sym == SDLK_F2) {
     wireframe = !wireframe;
   }
-  else if (e->keysym.sym == SDLK_SPACE) {
+  else if (e->keysym.sym == SDLK_e) {
     maze->OpenDoor();
+  }
+  else if (e->keysym.sym == SDLK_SPACE) {
+    maze->Shoot();
   }
 }
 

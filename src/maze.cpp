@@ -10,6 +10,7 @@
 #include "vertex.h"
 #include "tile.h"
 #include "player.h"
+#include "badguy.h"
 
 Maze::Maze(LevelFile* lvl) {
   level = lvl;
@@ -26,6 +27,11 @@ Maze::Maze(LevelFile* lvl) {
       doors.push_back(p);
       doorGrid[row * level->GetGridWidth() + col] = p;
     }
+  }
+
+  for (int i = 0; i < level->GetNumBadguys(); i++) {
+    LevelFile::BadguyPos pos = level->GetBadguy(i);
+    badguys.push_back(new Badguy(this, pos.x, pos.y));
   }
 
   player = new Player(this);
@@ -194,6 +200,10 @@ void Maze::Update(float timeDelta) {
   BOOST_FOREACH(Door* d, doors) {
     d->Update(timeDelta);
   }
+
+  BOOST_FOREACH(Badguy* b, badguys) {
+    b->Update(timeDelta);
+  }
 }
 
 void Maze::OpenDoor() {
@@ -224,6 +234,10 @@ bool Maze::CanMoveTo(float x, float y) const {
   return IsPassable(tileX, tileY);
 }
 
+void Maze::Shoot() {
+  
+}
+
 bool Maze::IsPassable(int x, int y) const {
   int w = level->GetGridWidth();
 
@@ -233,6 +247,15 @@ bool Maze::IsPassable(int x, int y) const {
   }
 
   return !level->IsWall(x, y);
+}
+
+
+int Maze::GetNumBadguys() const {
+  return badguys.size();
+}
+
+Badguy* Maze::GetBadguy(int i) const {
+  return badguys[i];
 }
 
 Player* Maze::GetPlayer() const {

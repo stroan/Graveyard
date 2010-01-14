@@ -33,6 +33,22 @@ int LevelFile::GetStartY() const {
   return startY;
 }
 
+int LevelFile::GetEndX() const {
+  return endX;
+}
+
+int LevelFile::GetEndY() const {
+  return endY;
+}
+
+int LevelFile::GetNumBadguys() const {
+  return badguys.size();
+}
+
+LevelFile::BadguyPos LevelFile::GetBadguy(int i) const {
+  return badguys[i];
+}
+
 LevelFile* LevelFile::Load(const std::string& filename) {
   std::ifstream inFile(filename.c_str()); 
   if (!inFile) { 
@@ -75,6 +91,32 @@ LevelFile* LevelFile::Load(const std::string& filename) {
 
       retVal->startX = x;
       retVal->startY = y;
+    }
+
+    else if (line.find("END:") != std::string::npos) {
+      std::getline(inFile, line);
+      std::vector<std::string> strs;
+      boost::split(strs, line, boost::is_any_of(","));
+      
+      int x = boost::lexical_cast<int>(strs[0]);
+      int y = boost::lexical_cast<int>(strs[1]);
+
+      retVal->endX = x;
+      retVal->endY = y;
+    }
+    else if (line.find("BADGUYS:") != std::string::npos) {
+      std::getline(inFile, line);
+
+      std::vector<std::string> strs;
+      int num = boost::lexical_cast<int>(line);
+      for (int i = 0; i < num; i++) {
+        std::getline(inFile, line);
+        boost::split(strs, line, boost::is_any_of(","));
+        BadguyPos p;
+        p.x = boost::lexical_cast<int>(strs[0]);
+        p.y = boost::lexical_cast<int>(strs[1]);
+        retVal->badguys.push_back(p);
+      }
     }
   }
  

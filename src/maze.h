@@ -9,6 +9,7 @@ class LevelFile;
 class Texture;
 class Door;
 class Player;
+class Badguy;
 
 class Maze {
 private: 
@@ -27,6 +28,8 @@ private:
   Door** doorGrid;
   std::vector<Door*> doors;
 
+  std::vector<Badguy*> badguys;
+
   Player* player;
 
 public:
@@ -39,9 +42,13 @@ public:
   void Update(float timeDelta);
 
   void OpenDoor();
+  void Shoot();
 
   bool CanMoveTo(float x, float y) const;
   bool IsPassable(int x, int y) const;
+
+  int GetNumBadguys() const;
+  Badguy* GetBadguy(int i) const;
 
   Player* GetPlayer() const;
   LevelFile* GetLevelFile() const;

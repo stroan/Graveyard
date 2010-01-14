@@ -15,11 +15,15 @@ private:
   
   Player* player;
 
-  Model_3DS* sphere;
+  Model_3DS* exclm;
+  Model_3DS* gun;
   Model_3DS* badguy;
   Model_3DS::Object* badguyGunLeft;
   Model_3DS::Object* badguyGunRight;
   bool gunRotLeft;
+
+  float bobbingexcl;
+  bool bobbingup;
 
   int lastSecond;
   float smallestFPS;
