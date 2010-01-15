@@ -242,9 +242,6 @@ void Maze::OpenDoor() {
   int openTileY = static_cast<int>(player->GetY() - (sin(orientation) * 0.5f));
   int w = level->GetGridWidth();
 
-  std::cerr << "Player: " << playerX << "," << playerY << "\n";
-  std::cerr << "Open: " << openTileX << "," << openTileY << "\n";
-
   Door* door = doorGrid[openTileY * w + openTileX];
   if (door) { door->Open(); }
 }

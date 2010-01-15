@@ -254,8 +254,6 @@ void Model_3DS::Load(char *name)
 	// Load the file
 	bin3ds = fopen(name,"rb");
 
-  fprintf(stderr, "after \n");
-
 	// Make sure we are at the beginning
 	fseek(bin3ds, 0, SEEK_SET);
 
