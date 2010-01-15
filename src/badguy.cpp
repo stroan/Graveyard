@@ -72,7 +72,9 @@ void Badguy::Update(float timeDelta) {
 
       bool done = false;
       int i = rand() % 4;
-      while (!done) {
+      int c = 0;
+      while (!done && c < 4) {
+        c ++;
         int nx, ny;
         if (i == 0) { nx = x + 1; ny = y; }
         else if (i == 1) { nx = x - 1; ny = y; }

@@ -16,13 +16,21 @@ int LevelFile::GetGridHeight() const {
 }
 
 bool LevelFile::IsWall(int x, int y) const {
-  return grid[y * gridWidth + x] == 1;
+  if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight) {
+    return grid[y * gridWidth + x] == 1;
+  } else {
+    return false;
+  }
 }
 
 int LevelFile::IsDoor(int x, int y) const {
-  int cell = grid[y * gridWidth + x];
-  if (cell != 2 && cell != 3) { return 0; }
-  return cell - 1;
+  if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight) {
+    int cell = grid[y * gridWidth + x];
+    if (cell != 2 && cell != 3) { return 0; }
+    return cell - 1;
+  } else {
+    return 0;
+  }
 }
 
 int LevelFile::GetStartX() const {

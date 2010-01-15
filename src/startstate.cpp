@@ -48,5 +48,5 @@ void StartState::Render() {
 
 void StartState::OnKeyDown(SDL_KeyboardEvent* e) {
   engine->PopState();
-  engine->PushState(new MainState(engine, "test1.lvl"));
+  engine->PushState(new MainState(engine, "level1.lvl"));
 }
