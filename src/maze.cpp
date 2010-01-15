@@ -203,6 +203,12 @@ void Maze::Update(float timeDelta) {
 
   BOOST_FOREACH(Badguy* b, badguys) {
     b->Update(timeDelta);
+
+    float dx = b->GetX() - player->GetX();
+    float dy = b->GetY() - player->GetY();
+    if ((dx * dx) + (dy * dy) < 1 && !b->IsDead()) { 
+      player->Kill();
+    }
   }
 }
 
@@ -237,14 +243,29 @@ bool Maze::CanMoveTo(float x, float y) const {
 void Maze::Shoot() {
   BOOST_FOREACH(Badguy* b, badguys) {
     float dx = b->GetX() - player->GetX();
-    float dy = b->GetY() - player->GetY();
+    float dy = player->GetY() - b->GetY();
 
     float angle = atan(dy / dx);
-    if (dy < 0) { angle += 3.1415; }
+    if (dx < 0) { angle = 3.14159f + angle; }
 
-    std::cerr << "angle " << angle << std::endl;
+    float facingAngle = player->GetOrientation() - angle;
+    while (facingAngle < 0) { facingAngle += 3.141596f * 2.0f; }
+    while (facingAngle > 3.141596f * 2.0f) { facingAngle -= 3.141596f * 2.0f; }
+
+    bool hit = false;
+    if (facingAngle < 0.3f) { hit = true; }
+    if (facingAngle > 3.141596f * 2.0f - 0.3f) { hit = true; }
+
+    float length = sqrt((dx * dx) + (dy * dy));
+    for (float d = 0; d < length && hit; d++) {
+      float nx = player->GetX() + cos(player->GetOrientation()) * d;
+      float ny = player->GetY() - sin(player->GetOrientation()) * d;
+
+      if (!IsPassable(nx,ny)) { hit = false; }
+    }
+
+    if (hit) { b->Kill(); }
   }
-  std::cerr << "player " << player->GetOrientation() << std::endl;
 }
 
 bool Maze::IsPassable(int x, int y) const {

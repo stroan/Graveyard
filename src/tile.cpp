@@ -14,7 +14,7 @@ Door::Door(bool horiz, int x, int y) {
 
 void Door::Open() {
   closed = false;
-  countdown = 3.0f;
+  countdown = 10.0f;
 }
 
 void Door::Update(float timeDelta) {

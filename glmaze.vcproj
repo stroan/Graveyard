@@ -199,6 +199,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\startstate.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\texture.h"
 				>
 			</File>
@@ -208,6 +212,10 @@
 			</File>
 			<File
 				RelativePath=".\src\vertex.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\winstate.h"
 				>
 			</File>
 		</Filter>
@@ -259,6 +267,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\startstate.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\texture.cpp"
 				>
 			</File>
@@ -268,6 +280,10 @@
 			</File>
 			<File
 				RelativePath=".\src\vertex.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\winstate.cpp"
 				>
 			</File>
 		</Filter>

@@ -16,6 +16,8 @@ Player::Player(Maze* m) {
   y = lvl->GetStartY() + 0.5f;
 
   orientation = 0;
+
+  dead = false;
 }
 
 void Player::TurnLeft(float timeDelta) {
@@ -43,6 +45,18 @@ void Player::MoveForward(float timeDelta) {
   if (maze->CanMoveTo(nx,ny)) { x = nx; y = ny; }
 }
 
+void Player::MoveBackward(float timeDelta) {
+  float speed = 1; // Measured in distance units per second;
+  float nx = x - cos(orientation) * speed * timeDelta;
+  float ny = y + sin(orientation) * speed * timeDelta;
+  if (maze->CanMoveTo(nx,ny)) { x = nx; y = ny; }
+}
+
+
+void Player::Kill() {
+  dead = true;
+}
+
 void Player::SetGLCamera() {
   gluLookAt(x, 0.55f, y,
             x + cos(orientation), 0.55f, y - sin(orientation),
@@ -59,4 +73,8 @@ float Player::GetY() const {
 
 float Player::GetOrientation() const {
   return orientation;
+}
+
+bool Player::IsDead() const {
+  return dead;
 }

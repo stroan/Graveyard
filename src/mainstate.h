@@ -10,6 +10,8 @@ class Maze;
 
 class MainState : public GameState {
 private:
+  std::string file;
+
   LevelFile* level;
   Maze* maze;
   
@@ -28,12 +30,17 @@ private:
   int lastSecond;
   float smallestFPS;
   bool wireframe;
+
+  bool god;
+  float godx;
+  float gody;
   
 public:
-  MainState(Engine* e);
+  MainState(Engine* e, const std::string& filename);
   virtual ~MainState();
 
   virtual void Init();
+  virtual void Term();
   virtual void Resume();
   virtual void Render();
   virtual void Update();

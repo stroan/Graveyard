@@ -49,6 +49,10 @@ LevelFile::BadguyPos LevelFile::GetBadguy(int i) const {
   return badguys[i];
 }
 
+std::string LevelFile::GetNextLevel() const {
+  return nextLevel;
+}
+
 LevelFile* LevelFile::Load(const std::string& filename) {
   std::ifstream inFile(filename.c_str()); 
   if (!inFile) { 
@@ -57,6 +61,7 @@ LevelFile* LevelFile::Load(const std::string& filename) {
   }
 
   LevelFile* retVal = new LevelFile();
+  retVal->nextLevel = "NONE";
 
   while(!inFile.eof()) {
     std::string line;
@@ -117,6 +122,10 @@ LevelFile* LevelFile::Load(const std::string& filename) {
         p.y = boost::lexical_cast<int>(strs[1]);
         retVal->badguys.push_back(p);
       }
+    }
+    else if (line.find("NEXT:") != std::string::npos) {
+      std::getline(inFile, line);
+      retVal->nextLevel = line;
     }
   }
  

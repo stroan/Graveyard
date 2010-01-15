@@ -1,5 +1,6 @@
 #include "engine.h"
 
+#include <boost/foreach.hpp>
 #include <iostream>
 #include <GL/glew.h>
 #include <GL/gl.h>
@@ -42,7 +43,7 @@ void Engine::PopState() {
     GameState* s = states.front();
     states.pop_front();
     s->Pause();
-    s->Term();
+    deadStates.push_back(s);
     if (!states.empty()) { states.front()->Resume(); }
   }
 }
@@ -57,7 +58,14 @@ void Engine::Run() {
 
     PumpEvents();
 
-	SDL_GL_SwapBuffers();
+    BOOST_FOREACH(GameState* s, deadStates) {
+      s->Term();
+      delete s;
+    }
+
+    deadStates = StateStack();
+
+	  SDL_GL_SwapBuffers();
   }
 }
 

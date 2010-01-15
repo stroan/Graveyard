@@ -12,6 +12,8 @@ protected:
 
   Maze* maze;
 
+  bool dead;
+
 public:
   Player(Maze* m);
 
@@ -19,12 +21,16 @@ public:
   void TurnRight(float timeDelta);
 
   void MoveForward(float timeDelta);
+  void MoveBackward(float timeDelta);
+
+  void Kill();
 
   void SetGLCamera();
 
   float GetX() const;
   float GetY() const;
   float GetOrientation() const;
+  bool IsDead() const;
 };
 
 #endif

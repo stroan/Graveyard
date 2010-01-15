@@ -177,7 +177,18 @@ Model_3DS::Model_3DS()
 
 Model_3DS::~Model_3DS()
 {
+  for (int i = 0; i < numObjects; i++) {
+    delete[] Objects[i].Vertexes;
+    delete[] Objects[i].Faces;
+    delete[] Objects[i].Normals;
+    delete[] Objects[i].TexCoords;
 
+    for (int j = 0; j < Objects[i].numMatFaces; j++) {
+      delete[] Objects[i].MatFaces[j].subFaces;
+    }
+  }
+
+  delete[] Objects;
 }
 
 Model_3DS::Object* Model_3DS::GetObjectByName(const std::string& name) {
@@ -369,7 +380,11 @@ void Model_3DS::Load(char *name)
     for (int j = 0; j < Objects[i].numMatFaces; j++) {
       Objects[i].MatFaces[j].iboOffset = indexOffset;
       indexOffset += Objects[i].MatFaces[j].numSubFaces;
-      memcpy(currentIndex, Objects[i].MatFaces[j].subFaces, sizeof(unsigned short) * Objects[i].MatFaces[j].numSubFaces * 3);
+      //memcpy(currentIndex, Objects[i].MatFaces[j].subFaces, sizeof(unsigned short) * Objects[i].MatFaces[j].numSubFaces * 3);
+      for (int k = 0; k < Objects[i].MatFaces[j].numSubFaces; k++) {
+        *(currentIndex + k) = *(Objects[i].MatFaces[j].subFaces + k);
+        //*(currentIndex + k) = 0;
+      }
       currentIndex += Objects[i].MatFaces[j].numSubFaces * 3;
     }
 
@@ -377,7 +392,7 @@ void Model_3DS::Load(char *name)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Objects[i].ibo); 
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short) * totalSubFaces * 3, indexes, GL_STATIC_DRAW);
 
-    delete indexes;
+    delete[] indexes;
   }
 }
 
@@ -1243,7 +1258,7 @@ void Model_3DS::FacesMaterialsListChunkProcessor(long length, long findex, int o
 	fread(&numEntries,sizeof(numEntries),1,bin3ds);
 
 	// Allocate an array to hold the list of faces associated with this material
-	Objects[objindex].MatFaces[subfacesindex].subFaces = new GLushort[numEntries * 3];
+	Objects[objindex].MatFaces[subfacesindex].subFaces = new unsigned short[numEntries * 3];
 	// Store this number for later use
 	Objects[objindex].MatFaces[subfacesindex].numSubFaces = numEntries * 3;
 

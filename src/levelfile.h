@@ -24,6 +24,8 @@ private:
 
   std::vector<BadguyPos> badguys;
 
+  std::string nextLevel;
+
 public:
   int GetGridWidth() const;
   int GetGridHeight() const;
@@ -38,6 +40,8 @@ public:
 
   int GetNumBadguys() const;
   BadguyPos GetBadguy(int i) const;
+
+  std::string GetNextLevel() const;
 
   static LevelFile* Load(const std::string& file);
 };

@@ -8,6 +8,9 @@ private:
   float x;
   float y;
 
+  float destx;
+  float desty;
+
   float orientation;
 
   Maze* maze;
@@ -20,8 +23,10 @@ public:
   float GetX() const;
   float GetY() const;
   float GetOrientation() const;
+  bool IsDead() const;
 
   void Update(float delta);
+  void Kill();
 };
 
 #endif

@@ -17,6 +17,8 @@ private:
 
   typedef std::list<GameState*> StateStack;
   StateStack states;
+  StateStack deadStates;
+  StateStack newStates;
 
 public:
   bool Initialize();
