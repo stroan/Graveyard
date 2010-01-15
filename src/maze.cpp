@@ -211,7 +211,7 @@ void Maze::OpenDoor() {
   int playerX = player->GetX();
   int playerY = player->GetY();
   int openTileX = static_cast<int>(player->GetX() + (cos(orientation) * 0.5f));
-  int openTileY = static_cast<int>(player->GetY() + (sin(orientation) * 0.5f));
+  int openTileY = static_cast<int>(player->GetY() - (sin(orientation) * 0.5f));
   int w = level->GetGridWidth();
 
   std::cerr << "Player: " << playerX << "," << playerY << "\n";
@@ -235,7 +235,16 @@ bool Maze::CanMoveTo(float x, float y) const {
 }
 
 void Maze::Shoot() {
-  
+  BOOST_FOREACH(Badguy* b, badguys) {
+    float dx = b->GetX() - player->GetX();
+    float dy = b->GetY() - player->GetY();
+
+    float angle = atan(dy / dx);
+    if (dy < 0) { angle += 3.1415; }
+
+    std::cerr << "angle " << angle << std::endl;
+  }
+  std::cerr << "player " << player->GetOrientation() << std::endl;
 }
 
 bool Maze::IsPassable(int x, int y) const {

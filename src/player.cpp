@@ -20,24 +20,32 @@ Player::Player(Maze* m) {
 
 void Player::TurnLeft(float timeDelta) {
   float speed = 3.141596f; //Measured in radians per second;
-  orientation -= speed * timeDelta;
+  orientation += speed * timeDelta;
+  
+  if (orientation > 3.141596f * 2.0f) {
+    orientation -= 3.141596f * 2.0f;
+  }
 }
 
 void Player::TurnRight(float timeDelta) {
   float speed = 3.141596f;
-  orientation += speed * timeDelta;
+  orientation -= speed * timeDelta;
+
+  if (orientation < 0) {
+    orientation += 3.141596f * 2.0f;
+  }
 }
 
 void Player::MoveForward(float timeDelta) {
   float speed = 1; // Measured in distance units per second;
   float nx = x + cos(orientation) * speed * timeDelta;
-  float ny = y + sin(orientation) * speed * timeDelta;
+  float ny = y - sin(orientation) * speed * timeDelta;
   if (maze->CanMoveTo(nx,ny)) { x = nx; y = ny; }
 }
 
 void Player::SetGLCamera() {
   gluLookAt(x, 0.55f, y,
-            x + cos(orientation), 0.55f, y + sin(orientation),
+            x + cos(orientation), 0.55f, y - sin(orientation),
             0, 1, 0);
 }
 
