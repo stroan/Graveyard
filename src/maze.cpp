@@ -176,6 +176,23 @@ void Maze::InitGeometry() {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   doorTex = Texture::LoadFromFile("data/textures/door.bmp");
+
+  std::vector<VertPosTexNorm> floorV;
+  floorV.push_back(VertPosTexNorm(0,0,0, 0,0, 0,1,0));
+  floorV.push_back(VertPosTexNorm(w,0,0, w,0, 0,1,0));
+  floorV.push_back(VertPosTexNorm(w,0,h, w,h, 0,1,0));
+
+  
+  floorV.push_back(VertPosTexNorm(0,0,0, 0,0, 0,1,0));
+  floorV.push_back(VertPosTexNorm(w,0,h, w,h, 0,1,0));
+  floorV.push_back(VertPosTexNorm(0,0,h, 0,h, 0,1,0));
+
+  glGenBuffers(1,&floorVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
+  VertPosTexNorm::FillBuffer(floorV);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  floorTex = Texture::LoadFromFile("data/textures/floor.bmp");
 }
 
 void Maze::Render() {
@@ -194,6 +211,11 @@ void Maze::Render() {
     glDrawArrays(GL_TRIANGLES, 0, numDoorTris * 3);
     glPopMatrix();
   }
+
+  floorTex->Bind();
+  glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
+  VertPosTexNorm::SetGLModes();
+  glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void Maze::Update(float timeDelta) {

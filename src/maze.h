@@ -19,9 +19,11 @@ private:
   int numTris;
   GLuint doorVBO;
   int numDoorTris;
+  GLuint floorVBO;
 
   Texture* wallTex;
   Texture* doorTex;
+  Texture* floorTex;
 
   // Allow for spacial lookup of doors, 
   // and fast interation of all doors.
