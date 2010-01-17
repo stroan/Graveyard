@@ -59,7 +59,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="sdl.lib sdlmain.lib glew32.lib opengl32.lib glu32.lib"
+				AdditionalDependencies="sdl.lib sdlmain.lib sdl_mixer.lib glew32.lib opengl32.lib glu32.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -128,6 +128,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="sdl.lib sdlmain.lib sdl_mixer.lib glew32.lib opengl32.lib glu32.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -199,6 +200,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\sound.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\startstate.h"
 				>
 			</File>
@@ -264,6 +269,10 @@
 			</File>
 			<File
 				RelativePath=".\src\player.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\sound.cpp"
 				>
 			</File>
 			<File

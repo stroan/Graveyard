@@ -1,6 +1,8 @@
 #ifndef TILE_H
 #define TILE_H
 
+class Maze;
+
 class Door {
 private:
   bool horizontal;
@@ -11,8 +13,10 @@ private:
   float offset;
   float countdown;
 
+  Maze* maze;
+
 public:
-  Door(bool horizontal, int x, int y);
+  Door(Maze* m, bool horizontal, int x, int y);
 
   void Open();
   void Update(float timeDelta);

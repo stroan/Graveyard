@@ -44,7 +44,7 @@ public:
   void Update(float timeDelta);
 
   void OpenDoor();
-  void Shoot();
+  bool Shoot();
 
   bool CanMoveTo(float x, float y) const;
   bool IsPassable(int x, int y) const;

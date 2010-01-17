@@ -7,6 +7,7 @@
 
 class LevelFile;
 class Maze;
+class Sound;
 
 class MainState : public GameState {
 private:
@@ -23,6 +24,9 @@ private:
   Model_3DS::Object* badguyGunLeft;
   Model_3DS::Object* badguyGunRight;
   bool gunRotLeft;
+
+  Sound* bang;
+  Sound* pop;
 
   float bobbingexcl;
   bool bobbingup;

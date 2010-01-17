@@ -23,7 +23,7 @@ Maze::Maze(LevelFile* lvl) {
       int doorType = level->IsDoor(col, row);
       if (!doorType) { continue; }
 
-      Door* p = new Door(doorType == 2, col, row);
+      Door* p = new Door(this,doorType == 2, col, row);
       doors.push_back(p);
       doorGrid[row * level->GetGridWidth() + col] = p;
     }
@@ -256,10 +256,12 @@ bool Maze::CanMoveTo(float x, float y) const {
   if (dy < 0.15f) { tileY--; }
   if (dy > 0.85f) { tileY++; }
 
-  return IsPassable(tileX, tileY);
+  return IsPassable(tileX, tileY) && IsPassable(x,y);
 }
 
-void Maze::Shoot() {
+bool Maze::Shoot() {
+  bool retVal = false;
+
   BOOST_FOREACH(Badguy* b, badguys) {
     float dx = b->GetX() - player->GetX();
     float dy = player->GetY() - b->GetY();
@@ -283,8 +285,10 @@ void Maze::Shoot() {
       if (!IsPassable(nx,ny)) { hit = false; }
     }
 
-    if (hit) { b->Kill(); }
+    if (hit) { b->Kill(); retVal = true; }
   }
+
+  return retVal;
 }
 
 bool Maze::IsPassable(int x, int y) const {

@@ -12,6 +12,7 @@
 #include "player.h"
 #include "badguy.h"
 #include "winstate.h"
+#include "sound.h"
 
 #include "Model_3DS.h"
 
@@ -45,6 +46,9 @@ void MainState::Init() {
   badguyGunRight = badguy->GetObjectByName("RightGun");
   gunRotLeft = true;
 
+  bang = Sound::LoadFromFile("data/sounds/bang.wav");
+  pop = Sound::LoadFromFile("data/sounds/pop.wav");
+
   lastSecond = 0;
   smallestFPS = 0;
   wireframe = false;
@@ -58,6 +62,7 @@ void MainState::Term() {
   delete exclm;
   delete gun;
   delete badguy;
+  delete bang;
 }
 
 void MainState::Resume() {
@@ -98,12 +103,6 @@ void MainState::Render() {
   glLightfv(GL_LIGHT0, GL_POSITION, position);
 
   if (!god) {
-    glPushMatrix();
-    glTranslatef(-0.25f,-0.275,-0.2);
-    glRotatef(180,0,1,0);
-    gun->Draw();
-    glPopMatrix();
-
     player->SetGLCamera();
   }
   else {
@@ -135,6 +134,16 @@ void MainState::Render() {
   }
 
   glPopMatrix();
+
+  glLoadIdentity();
+  if (!god) {
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glPushMatrix();
+    glTranslatef(-0.25f,-0.275,-0.2);
+    glRotatef(180,0,1,0);
+    gun->Draw();
+    glPopMatrix();
+  }
   //SDL_GL_SwapBuffers();
 }
 
@@ -237,7 +246,8 @@ void MainState::OnKeyDown(SDL_KeyboardEvent* e) {
     maze->OpenDoor();
   }
   else if (e->keysym.sym == SDLK_SPACE && !god) {
-    maze->Shoot();
+    if (maze->Shoot()) { pop->PlayEffect(); }
+    bang->PlayEffect();
   }
   else if (e->keysym.sym == SDLK_F3) {
     god = !god;

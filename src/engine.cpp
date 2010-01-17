@@ -4,11 +4,12 @@
 #include <iostream>
 #include <GL/glew.h>
 #include <GL/gl.h>
+#include <SDL_mixer.h>
 
 #include "gamestate.h"
 
 bool Engine::Initialize() {
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) { 
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) { 
     std::cerr << "Error initializing SDL." << std::endl; 
     return false; 
   }
@@ -23,6 +24,9 @@ bool Engine::Initialize() {
   if (glewInit() != GLEW_OK) { 
     std::cerr << "Error initializing GLEW." << std::endl; 
     return false; 
+  }
+  if (Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 4096) != 0) {
+    return false;
   }
   SDL_WM_SetCaption("glmaze","");
   glViewport(0,0,800,600);

@@ -3,10 +3,14 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
-Door::Door(bool horiz, int x, int y) {
+#include "maze.h"
+#include "player.h"
+
+Door::Door(Maze* m, bool horiz, int x, int y) {
   horizontal = horiz;
   tileX = x;
   tileY = y;
+  maze = m;
 
   closed = true;
   offset = 0;
@@ -14,7 +18,7 @@ Door::Door(bool horiz, int x, int y) {
 
 void Door::Open() {
   closed = false;
-  countdown = 10.0f;
+  countdown = 3.0f;
 }
 
 void Door::Update(float timeDelta) {
@@ -25,7 +29,12 @@ void Door::Update(float timeDelta) {
   if (!closed && offset >= 0.9f) {
     countdown -= timeDelta;
     if (countdown < 0) {
-      closed = true;
+      if ((int)maze->GetPlayer()->GetX() == tileX && (int)maze->GetPlayer()->GetY() == tileY) {
+        countdown = 3;
+      }
+      else {
+        closed = true;
+      }
     }
   }
 
