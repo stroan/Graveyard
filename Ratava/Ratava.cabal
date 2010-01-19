@@ -1,0 +1,9 @@
+name: Ratava
+version: 0.0.1
+build-type: Simple
+
+executable Ratava
+  executable: Ratava
+  hs-source-dirs: src
+  main-is: Main.hs
+  build-depends: base >= 3 && < 6
