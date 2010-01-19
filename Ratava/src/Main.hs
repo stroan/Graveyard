@@ -1,3 +1,3 @@
-import Prelude
+import Lexer
 
 main = putStrLn "Hello, world!"
