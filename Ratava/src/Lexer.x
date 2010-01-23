@@ -1,8 +1,9 @@
 {
 module Lexer
-  ( Token (..)
-  , scanTokens
+  ( scanTokens
   ) where
+
+import Types
 }
 
 %wrapper "basic"
@@ -16,36 +17,25 @@ tokens :-
   \-\-.*\n              ;
   \{\-\-.*\-\-\}        ;
 
-  data                  { \_ -> KW_data }
-  =                     { \_ -> Equals }
-  ::                    { \_ -> TypeSpec }
-  \-\>                  { \_ -> RArrow }
+  data                  { \_ -> TokBuiltin "data" }
+  =                     { \_ -> TokEquals }
+  ::                    { \_ -> TokTypeSpec }
+  \-\>                  { \_ -> TokRArrow }
 
-  \-?$digit+            { \s -> IntLit s }
-  \?$digit+\.$digit+    { \s -> RealLit s }
-  \".*\"                { \s -> StringLit s }
+  \-?$digit+            { \s -> TokIntLit s }
+  \?$digit+\.$digit+    { \s -> TokRealLit s }
+  \".*\"                { \s -> TokStringLit s }
 
-  $up$alpha*            { \s -> ConId s }
-  $alpha+               { \s -> IdentId s }
+  $up$alpha*            { \s -> TokConId s }
+  $alpha+               { \s -> TokIdentId s }
 
 {
-data Token = KW_data
-           | ConId String
-           | IdentId String
-           | Equals
-           | TypeSpec
-           | RArrow
-           | StringLit String
-           | IntLit String
-           | RealLit String
-           | Error
-           deriving (Eq,Show)
 
 safeScanTokens str = go ('\n',str)
   where go inp@(_,str) =
           case alexScan inp 0 of
                 AlexEOF -> []
-                AlexError _ -> [Error]
+                AlexError _ -> [TokError]
                 AlexSkip  inp' len     -> go inp'
                 AlexToken inp' len act -> act (take len str) : go inp'
 

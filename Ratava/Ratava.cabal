@@ -1,5 +1,6 @@
 name: Ratava
 version: 0.0.1
+Cabal-Version: >= 1.2
 build-type: Simple
 
 executable Ratava
@@ -9,4 +10,4 @@ executable Ratava
   build-depends: 
     base >= 3 && < 6,
     array
-  other-modules: Lexer
+  other-modules: Lexer, Parser
