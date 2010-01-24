@@ -16,6 +16,10 @@ import Types
       '='          { TokEquals }
       '::'         { TokTypeSpec }
       '->'         { TokRArrow }
+      '('          { TokOpenParen }
+      ')'          { TokCloseParen }
+      ','          { TokComma }
+      ';'          { TokColon }
       string       { TokStringLit $$ }
       int          { TokIntLit $$ }
       real         { TokRealLit $$ }
@@ -34,15 +38,47 @@ ModuleDecls :: { [TopLevelDecl] }
 TopLevelDecl :: { TopLevelDecl }
   : DataDecl                        { $1 }
   | FuncBind                        { $1 }
+  | FuncTypeDecl                    { $1 }
 
 DataDecl :: { TopLevelDecl }         
-  : data                     { DataDecl } 
+  : data con '=' DataCon  ';'   { DataDecl (Ident $2) [] $4 }
+  | data con DataParams '=' DataCon ';'  { DataDecl (Ident $2) $3 $5 }
+
+DataCon :: { Constructor }
+  : con                    { Constructor (Ident $1) [] }
+  | con ADataCon           { Constructor (Ident $1) $2 }
+
+ADataCon :: { [Type] }
+  : AType ADataCon            { $1:$2 }
+  | AType                     { [$1] }
+
+DataParams :: { [Ident] }
+  : ident DataParams         { (Ident $1):$2 }
+  | ident                    { [Ident $1] }
 
 FuncBind :: { TopLevelDecl }
-  : FuncName '=' Expr        { FuncBind $1 [] $3 }
+  : ident FuncParams '=' Expr ';'   { FuncBindDecl (Ident $1) $2 $4 }
+  | ident '=' Expr ';'              { FuncBindDecl (Ident $1) [] $3 }
 
-FuncName :: { Name }
-  : ident                    { Name $1 }
+FuncParams :: { [ Ident ] }
+  : ident FuncParams         { (Ident $1):$2 }
+  | ident                    { [(Ident $1)] }
+
+FuncTypeDecl :: { TopLevelDecl }
+  : ident '::' Type ';'      { FuncTypeDecl (Ident $1) $3 }
+
+Type :: { Type }
+  : BType                    { $1 }
+  | BType '->' Type          { TypeFunc $1 $3 }
+
+BType :: { Type }
+  : AType BType              { TypeApp $1 $2 }
+  | AType                    { $1 }
+
+AType :: { Type }
+  : con                      { TypeCon $1 }
+  | ident                    { TypeVar $1 }
+  | '(' Type ')'             { TypeParen $2 }
 
 Expr :: { Exp }
   : Expr AExpr               { AppExp $1 $2 } 
@@ -50,6 +86,13 @@ Expr :: { Exp }
 
 AExpr :: { Exp }
   : LiteralExpr              { $1 }
+  | '(' Expr ')'             { ParenExp $2 }
+  | '(' Expr TupleEnd        { TupleExp ($2:$3) }
+  | ident                    { IdentExp $1 }
+
+TupleEnd :: { [Exp] }
+  : ',' Expr TupleEnd        { $2:$3 }
+  | ',' Expr ')'             { [$2] }
 
 LiteralExpr :: { Exp }
   : string                   { LiteralExp (LiteralString $1) }

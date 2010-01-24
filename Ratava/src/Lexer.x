@@ -20,7 +20,11 @@ tokens :-
   data                  { \_ -> TokBuiltin "data" }
   =                     { \_ -> TokEquals }
   ::                    { \_ -> TokTypeSpec }
+  \(                    { \_ -> TokOpenParen }
+  \)                    { \_ -> TokCloseParen }
+  \,                    { \_ -> TokComma }    
   \-\>                  { \_ -> TokRArrow }
+  \;                    { \_ -> TokColon }
 
   \-?$digit+            { \s -> TokIntLit s }
   \?$digit+\.$digit+    { \s -> TokRealLit s }

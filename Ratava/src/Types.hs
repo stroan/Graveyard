@@ -3,10 +3,12 @@ module Types
   , ParseE (..)
   , EffectModule (..)
   , TopLevelDecl (..)
-  , Name (..)
+  , Ident (..)
   , Exp (..)
   , Pattern (..)
   , Literal (..)
+  , Type (..)
+  , Constructor (..)
   ) where
 
 {-- -- -- -- -- -- -- -- -- -- -- -- --
@@ -16,6 +18,10 @@ data Token = TokBuiltin String
            | TokEquals
            | TokTypeSpec
            | TokRArrow
+           | TokOpenParen
+           | TokCloseParen
+           | TokComma
+           | TokColon
            | TokStringLit String
            | TokIntLit String
            | TokRealLit String
@@ -30,15 +36,20 @@ Types defining the AST
 data EffectModule = EffectModule [TopLevelDecl]
                     deriving (Show, Eq)
 
-data TopLevelDecl = DataDecl
-                  | FuncBind Name [Pattern] Exp
+data TopLevelDecl = DataDecl Ident [Ident] Constructor 
+                  | FuncBindDecl Ident [Ident] Exp
+                  | FuncTypeDecl Ident Type
                     deriving (Show, Eq)
 
-data Name = Name String
+data Ident = Ident String
             deriving (Show, Eq)
 
 data Exp = LiteralExp Literal
+         | IdentExp String
+         | ConsExp String
          | AppExp Exp Exp
+         | ParenExp Exp
+         | TupleExp [Exp]
            deriving (Show, Eq)
 
 data Literal = LiteralInt String
@@ -48,6 +59,16 @@ data Literal = LiteralInt String
            
 data Pattern = Pattern
                deriving (Show, Eq)
+
+data Type = TypeCon String
+          | TypeVar String
+          | TypeFunc Type Type
+          | TypeParen Type
+          | TypeApp Type Type
+          deriving (Show, Eq)
+
+data Constructor = Constructor Ident [Type]
+                 deriving (Show, Eq)
 
 {--
 Monad for use in parsing, and contains resulting value.

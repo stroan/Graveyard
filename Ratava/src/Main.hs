@@ -3,6 +3,7 @@ module Main (main) where
 import Data.List
 import Lexer
 import Parser
+import Compiler
 
 testStrings = [ "str = \"str content\""
               , "reverse :: String -> String"
@@ -11,14 +12,16 @@ testStrings = [ "str = \"str content\""
               , "piReal = 3.1415"
               , "negPi = -3"]
               
-testStrings' = [ "data" 
-               , "func = 1 2 3" ]
+testStrings' = [ "func :: (MyType a -> Bool) -> Char;" 
+               , "func x = add (add 1 2) 2;"
+               , "data Foo a = Bar Tree String;"]
               
 runTest content = 
   intercalate "\n==>" resultLines
   where lexResult = scanTokens content
         parseResult = parseTokens lexResult
-        resultLines = [content, show lexResult, show parseResult]
+        compileResult = compile parseResult
+        resultLines = [content, show lexResult, show parseResult, compileResult]
 
 main = do
   mapM (putStrLn . runTest) testStrings'
