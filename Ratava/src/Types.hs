@@ -1,5 +1,6 @@
 module Types
   ( Token (..)
+  , Lexeme (..)
   , ParseE (..)
   , EffectModule (..)
   , TopLevelDecl (..)
@@ -28,7 +29,11 @@ data Token = TokBuiltin String
            | TokConId String
            | TokIdentId String
            | TokError
+           | TokEOF
            deriving (Eq,Show)
+
+data Lexeme = Lexeme Int Int Token
+              deriving (Show, Eq)
 
 {-- -- -- -- -- -- -- -- -- -- -- -- --
 Types defining the AST
@@ -37,7 +42,7 @@ data EffectModule = EffectModule [TopLevelDecl]
                     deriving (Show, Eq)
 
 data TopLevelDecl = DataDecl Ident [Ident] Constructor 
-                  | FuncBindDecl Ident [Ident] Exp
+                  | FuncBindDecl Ident [Pattern] Exp
                   | FuncTypeDecl Ident Type
                   | BaseTypeDecl Ident String Constructor String
                   | BaseFuncDecl Ident Type String
@@ -60,8 +65,11 @@ data Literal = LiteralInt String
              | LiteralString String
              deriving (Show, Eq)
            
-data Pattern = Pattern
-               deriving (Show, Eq)
+data Pattern = IdentPattern String
+             | ConPattern String
+             | ParenPattern Pattern
+             | AppPattern Pattern Pattern
+             deriving (Show, Eq)
 
 data Type = TypeCon String
           | TypeVar String

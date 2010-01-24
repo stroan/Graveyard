@@ -7,32 +7,33 @@ import Types
 }
 
 %name parseTokens
-%tokentype { Token }
+%tokentype { Lexeme }
 %monad { ParseE }
 %error { parseError }
 
 %token
-      data         { TokBuiltin "data" }
-      basetype     { TokBuiltin "basetype" }
-      basefunc     { TokBuiltin "basefunc" }
-      semantic     { TokBuiltin "semantic" }
-      '='          { TokEquals }
-      '::'         { TokTypeSpec }
-      '->'         { TokRArrow }
-      '('          { TokOpenParen }
-      ')'          { TokCloseParen }
-      ','          { TokComma }
-      ';'          { TokColon }
-      string       { TokStringLit $$ }
-      int          { TokIntLit $$ }
-      real         { TokRealLit $$ }
-      con          { TokConId $$ }
-      ident        { TokIdentId $$ }
+      data         { Lexeme _ _ (TokBuiltin "data") }
+      basetype     { Lexeme _ _ (TokBuiltin "basetype") }
+      basefunc     { Lexeme _ _ (TokBuiltin "basefunc") }
+      semantic     { Lexeme _ _ (TokBuiltin "semantic") }
+      '='          { Lexeme _ _ TokEquals }
+      '::'         { Lexeme _ _ TokTypeSpec }
+      '->'         { Lexeme _ _ TokRArrow }
+      '('          { Lexeme _ _ TokOpenParen }
+      ')'          { Lexeme _ _ TokCloseParen }
+      ','          { Lexeme _ _ TokComma }
+      ';'          { Lexeme _ _ TokColon }
+      string       { Lexeme _ _ (TokStringLit $$) }
+      int          { Lexeme _ _ (TokIntLit $$) }
+      real         { Lexeme _ _ (TokRealLit $$) }
+      con          { Lexeme _ _ (TokConId $$) }
+      ident        { Lexeme _ _ (TokIdentId $$) }
+      eof          { Lexeme _ _ TokEOF }
 
 %%
 
 Start :: { EffectModule } 
-  : ModuleDecls              { EffectModule $1 }
+  : ModuleDecls eof             { EffectModule $1 }
 
 ModuleDecls :: { [TopLevelDecl] }
   : TopLevelDecl ModuleDecls        { $1:$2 }
@@ -76,9 +77,18 @@ FuncBind :: { TopLevelDecl }
   : ident FuncParams '=' Expr ';'   { FuncBindDecl (Ident $1) $2 $4 }
   | ident '=' Expr ';'              { FuncBindDecl (Ident $1) [] $3 }
 
-FuncParams :: { [ Ident ] }
-  : ident FuncParams         { (Ident $1):$2 }
-  | ident                    { [(Ident $1)] }
+FuncParams :: { [ Pattern ] }
+  : AFuncParam FuncParams         { $1:$2 }
+  | AFuncParam                    { [$1] }
+
+AFuncParam :: { Pattern }
+  : ident                         { IdentPattern $1 }
+  | con                           { ConPattern $1 }
+  | '(' BFuncParam ')'            { ParenPattern $2 }
+
+BFuncParam :: { Pattern }
+  : AFuncParam BFuncParam         { AppPattern $1 $2 }
+  | AFuncParam                    { $1 }
 
 FuncTypeDecl :: { TopLevelDecl }
   : ident '::' Type ';'      { FuncTypeDecl (Ident $1) $3 }
@@ -117,5 +127,6 @@ LiteralExpr :: { Exp }
 
 
 { 
-parseError _ = fail "parse error"
+parseError ((Lexeme l c _):_) = fail $ "Parse error at " ++ (show l) ++ ":" ++ (show c)
+parseError _ = fail "durffff"
 }

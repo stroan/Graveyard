@@ -4,51 +4,55 @@ module Lexer
   ) where
 
 import Types
+import Data.List
 }
 
-%wrapper "basic"
+%wrapper "posn"
 
 $digit = 0-9
 $alpha = [a-zA-Z]
 $up = [A-Z]
 $special   = [\(\)\,\;\[\]\`\{\}]
-$graphic = [$alpha $digit $special]
+$ascsymbol = [\!\#\$\%\&\*\+\.\/\<\=\>\?\@\\\^\|\-\~]
+$graphic = [$alpha $digit $special $ascsymbol]
 
 @string  = $graphic # [\"\\] | " "
 
 tokens :-
   $white+                    ;
-  \-\- @string*              ;
-  \{\-\- @string* \-\-\}     ;
+  \-\- .*                    ;
 
-  data                  { \_ -> TokBuiltin "data" }
-  basetype              { \_ -> TokBuiltin "basetype" }
-  basefunc              { \_ -> TokBuiltin "basefunc" }
-  semantic              { \_ -> TokBuiltin "semantic" }
-  =                     { \_ -> TokEquals }
-  ::                    { \_ -> TokTypeSpec }
-  \(                    { \_ -> TokOpenParen }
-  \)                    { \_ -> TokCloseParen }
-  \,                    { \_ -> TokComma }    
-  \-\>                  { \_ -> TokRArrow }
-  \;                    { \_ -> TokColon }
+  data                  { \p _ -> mT p $ TokBuiltin "data" }
+  basetype              { \p _ -> mT p $ TokBuiltin "basetype" }
+  basefunc              { \p _ -> mT p $ TokBuiltin "basefunc" }
+  semantic              { \p _ -> mT p $ TokBuiltin "semantic" }
+  =                     { \p _ -> mT p $ TokEquals }
+  ::                    { \p _ -> mT p $ TokTypeSpec }
+  \(                    { \p _ -> mT p $ TokOpenParen }
+  \)                    { \p _ -> mT p $ TokCloseParen }
+  \,                    { \p _ -> mT p $ TokComma }    
+  \-\>                  { \p _ -> mT p $ TokRArrow }
+  \;                    { \p _ -> mT p $ TokColon }
 
-  \-?$digit+            { \s -> TokIntLit s }
-  \?$digit+\.$digit+    { \s -> TokRealLit s }
-  \" @string* \"                { \s -> TokStringLit s }
+  \-?$digit+            { \p s -> mT p $ TokIntLit s }
+  \?$digit+\.$digit+    { \p s -> mT p $ TokRealLit s }
+  \" @string* \"        { \p s -> mT p $ TokStringLit s }
 
-  $up$alpha*            { \s -> TokConId s }
-  $alpha+               { \s -> TokIdentId s }
+  $up$alpha*            { \p s -> mT p $ TokConId s }
+  $alpha+               { \p s -> mT p $ TokIdentId s }
 
 {
 
-safeScanTokens str = go ('\n',str)
-  where go inp@(_,str) =
+mT (AlexPn _ l c) tok = Lexeme l c tok
+
+safeScanTokens str = go (alexStartPos,'\n',str)
+  where go inp@(pos,_,str) =
           case alexScan inp 0 of
-                AlexEOF -> []
-                AlexError _ -> [TokError]
+                AlexEOF -> [mT pos TokEOF]
+                AlexError _ -> [mT pos TokError]
                 AlexSkip  inp' len     -> go inp'
-                AlexToken inp' len act -> act (take len str) : go inp'
+                AlexToken inp' len act -> act pos (take len str) : go inp'
 
 scanTokens = safeScanTokens
+    
 }

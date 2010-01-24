@@ -17,14 +17,15 @@ testStrings' = [ "func :: (MyType a -> Bool) -> Char;"
                , "data Foo a = Bar Tree String;"
                , "basetype Double \"double\" = Double Real \"[[0]]\";"
                , "basefunc mulDD :: Double -> Double -> Double \"mul([[0]],[[0]])\";"
-               , "semantic Position a = Position a \"POSITION\";"]
+               , "semantic Position a = Position a \"POSITION\";" ]
               
 runTest content = 
-  intercalate "\n==>" resultLines
+  intercalate "\n==>\n" resultLines
   where lexResult = scanTokens content
         parseResult = parseTokens lexResult
         compileResult = compile parseResult
         resultLines = [content, show lexResult, show parseResult, compileResult]
 
 main = do
-  mapM (putStrLn . runTest) testStrings'
+  content <- readFile "test/test1.rtv"
+  putStrLn $ runTest content
