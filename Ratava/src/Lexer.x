@@ -11,13 +11,20 @@ import Types
 $digit = 0-9
 $alpha = [a-zA-Z]
 $up = [A-Z]
+$special   = [\(\)\,\;\[\]\`\{\}]
+$graphic = [$alpha $digit $special]
+
+@string  = $graphic # [\"\\] | " "
 
 tokens :-
-  $white+               ;
-  \-\-.*\n              ;
-  \{\-\-.*\-\-\}        ;
+  $white+                    ;
+  \-\- @string*              ;
+  \{\-\- @string* \-\-\}     ;
 
   data                  { \_ -> TokBuiltin "data" }
+  basetype              { \_ -> TokBuiltin "basetype" }
+  basefunc              { \_ -> TokBuiltin "basefunc" }
+  semantic              { \_ -> TokBuiltin "semantic" }
   =                     { \_ -> TokEquals }
   ::                    { \_ -> TokTypeSpec }
   \(                    { \_ -> TokOpenParen }
@@ -28,7 +35,7 @@ tokens :-
 
   \-?$digit+            { \s -> TokIntLit s }
   \?$digit+\.$digit+    { \s -> TokRealLit s }
-  \".*\"                { \s -> TokStringLit s }
+  \" @string* \"                { \s -> TokStringLit s }
 
   $up$alpha*            { \s -> TokConId s }
   $alpha+               { \s -> TokIdentId s }

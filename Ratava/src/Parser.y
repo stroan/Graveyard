@@ -13,6 +13,9 @@ import Types
 
 %token
       data         { TokBuiltin "data" }
+      basetype     { TokBuiltin "basetype" }
+      basefunc     { TokBuiltin "basefunc" }
+      semantic     { TokBuiltin "semantic" }
       '='          { TokEquals }
       '::'         { TokTypeSpec }
       '->'         { TokRArrow }
@@ -39,6 +42,19 @@ TopLevelDecl :: { TopLevelDecl }
   : DataDecl                        { $1 }
   | FuncBind                        { $1 }
   | FuncTypeDecl                    { $1 }
+  | BaseTypeDecl                    { $1 }
+  | BaseFuncDecl                    { $1 }
+  | SemanticDecl                    { $1 }
+
+BaseTypeDecl :: { TopLevelDecl }
+  : basetype con string '=' DataCon string ';' { BaseTypeDecl (Ident $2) $3 $5 $6 }
+
+BaseFuncDecl :: { TopLevelDecl }
+  : basefunc ident '::' Type string ';' { BaseFuncDecl (Ident $2) $4 $5 }
+
+SemanticDecl :: { TopLevelDecl }
+  : semantic con '=' DataCon string ';'   { SemanticDecl (Ident $2) [] $4 $5 }
+  | semantic con DataParams '=' DataCon string ';' { SemanticDecl (Ident $2) $3 $5 $6 }
 
 DataDecl :: { TopLevelDecl }         
   : data con '=' DataCon  ';'   { DataDecl (Ident $2) [] $4 }

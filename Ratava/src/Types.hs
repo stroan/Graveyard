@@ -39,6 +39,9 @@ data EffectModule = EffectModule [TopLevelDecl]
 data TopLevelDecl = DataDecl Ident [Ident] Constructor 
                   | FuncBindDecl Ident [Ident] Exp
                   | FuncTypeDecl Ident Type
+                  | BaseTypeDecl Ident String Constructor String
+                  | BaseFuncDecl Ident Type String
+                  | SemanticDecl Ident [Ident] Constructor String
                     deriving (Show, Eq)
 
 data Ident = Ident String
