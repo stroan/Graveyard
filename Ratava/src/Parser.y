@@ -48,34 +48,34 @@ TopLevelDecl :: { TopLevelDecl }
   | SemanticDecl                    { $1 }
 
 BaseTypeDecl :: { TopLevelDecl }
-  : basetype con string '=' DataCon string ';' { BaseTypeDecl (Ident $2) $3 $5 $6 }
+  : basetype con string '=' DataCon string ';' { BaseTypeDecl (IdentCon $2) $3 $5 $6 }
 
 BaseFuncDecl :: { TopLevelDecl }
-  : basefunc ident '::' Type string ';' { BaseFuncDecl (Ident $2) $4 $5 }
+  : basefunc ident '::' Type string ';' { BaseFuncDecl (IdentVar $2) $4 $5 }
 
 SemanticDecl :: { TopLevelDecl }
-  : semantic con '=' DataCon string ';'   { SemanticDecl (Ident $2) [] $4 $5 }
-  | semantic con DataParams '=' DataCon string ';' { SemanticDecl (Ident $2) $3 $5 $6 }
+  : semantic con '=' DataCon string ';'   { SemanticDecl (IdentCon $2) [] $4 $5 }
+  | semantic con DataParams '=' DataCon string ';' { SemanticDecl (IdentCon $2) $3 $5 $6 }
 
 DataDecl :: { TopLevelDecl }         
-  : data con '=' DataCon  ';'   { DataDecl (Ident $2) [] $4 }
-  | data con DataParams '=' DataCon ';'  { DataDecl (Ident $2) $3 $5 }
+  : data con '=' DataCon  ';'   { DataDecl (IdentCon $2) [] $4 }
+  | data con DataParams '=' DataCon ';'  { DataDecl (IdentCon $2) $3 $5 }
 
 DataCon :: { Constructor }
-  : con                    { Constructor (Ident $1) [] }
-  | con ADataCon           { Constructor (Ident $1) $2 }
+  : con                    { Constructor (IdentCon $1) [] }
+  | con ADataCon           { Constructor (IdentCon $1) $2 }
 
 ADataCon :: { [Type] }
   : AType ADataCon            { $1:$2 }
   | AType                     { [$1] }
 
 DataParams :: { [Ident] }
-  : ident DataParams         { (Ident $1):$2 }
-  | ident                    { [Ident $1] }
+  : ident DataParams         { (IdentVar $1):$2 }
+  | ident                    { [IdentVar $1] }
 
 FuncBind :: { TopLevelDecl }
-  : ident FuncParams '=' Expr ';'   { FuncBindDecl (Ident $1) $2 $4 }
-  | ident '=' Expr ';'              { FuncBindDecl (Ident $1) [] $3 }
+  : ident FuncParams '=' Expr ';'   { FuncBindDecl (IdentVar $1) $2 $4 }
+  | ident '=' Expr ';'              { FuncBindDecl (IdentVar $1) [] $3 }
 
 FuncParams :: { [ Pattern ] }
   : AFuncParam FuncParams         { $1:$2 }
@@ -91,7 +91,7 @@ BFuncParam :: { Pattern }
   | AFuncParam                    { $1 }
 
 FuncTypeDecl :: { TopLevelDecl }
-  : ident '::' Type ';'      { FuncTypeDecl (Ident $1) $3 }
+  : ident '::' Type ';'      { FuncTypeDecl (IdentVar $1) $3 }
 
 Type :: { Type }
   : BType                    { $1 }
@@ -102,8 +102,8 @@ BType :: { Type }
   | AType                    { $1 }
 
 AType :: { Type }
-  : con                      { TypeCon $1 }
-  | ident                    { TypeVar $1 }
+  : con                      { TypeCon (IdentCon $1) }
+  | ident                    { TypeVar (IdentVar $1) }
   | '(' Type ')'             { TypeParen $2 }
 
 Expr :: { Exp }

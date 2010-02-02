@@ -1,6 +1,9 @@
 module Types
-  ( Token (..)
+  ( 
+  {-- Lexer types --}
+  Token (..)
   , Lexeme (..)
+  {-- Parser types --}
   , ParseE (..)
   , EffectModule (..)
   , TopLevelDecl (..)
@@ -49,7 +52,8 @@ data TopLevelDecl = DataDecl Ident [Ident] Constructor
                   | SemanticDecl Ident [Ident] Constructor String
                     deriving (Show, Eq)
 
-data Ident = Ident String
+data Ident = IdentVar String
+           | IdentCon String
             deriving (Show, Eq)
 
 data Exp = LiteralExp Literal
@@ -71,8 +75,8 @@ data Pattern = IdentPattern String
              | AppPattern Pattern Pattern
              deriving (Show, Eq)
 
-data Type = TypeCon String
-          | TypeVar String
+data Type = TypeCon Ident
+          | TypeVar Ident
           | TypeFunc Type Type
           | TypeParen Type
           | TypeApp Type Type
@@ -95,3 +99,4 @@ instance Monad ParseE where
          Ok a -> k a
          Failed e -> Failed e
   fail a = Failed a
+

@@ -9,5 +9,6 @@ executable Ratava
   main-is: Main.hs
   build-depends: 
     base >= 3 && < 6,
-    array
+    array,
+    containers
   other-modules: Lexer, Parser
