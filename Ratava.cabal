@@ -10,5 +10,6 @@ executable Ratava
   build-depends: 
     base >= 3 && < 6,
     array,
-    containers
+    containers,
+    mtl
   other-modules: Lexer, Parser

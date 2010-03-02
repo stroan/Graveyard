@@ -115,6 +115,7 @@ AExpr :: { Exp }
   | '(' Expr ')'             { ParenExp $2 }
   | '(' Expr TupleEnd        { TupleExp ($2:$3) }
   | ident                    { IdentExp $1 }
+  | con                      { ConsExp $1 }
 
 TupleEnd :: { [Exp] }
   : ',' Expr TupleEnd        { $2:$3 }

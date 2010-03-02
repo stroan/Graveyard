@@ -13,6 +13,13 @@ module Types
   , Literal (..)
   , Type (..)
   , Constructor (..)
+  {-- Compiler types --}
+  , CompilerM (..)
+  , Kind (..)
+  , TypedBinding (..)
+  , UntypedFunc (..)
+  , normaliseType
+  , isBaseData, isBaseFunc, isSemantic, isFuncBind, isFuncType, isLexType
   ) where
 
 {-- -- -- -- -- -- -- -- -- -- -- -- --
@@ -80,10 +87,53 @@ data Type = TypeCon Ident
           | TypeFunc Type Type
           | TypeParen Type
           | TypeApp Type Type
+	  | TypeId Integer
+	  | TypeGen Ident Type
           deriving (Show, Eq)
 
 data Constructor = Constructor Ident [Type]
                  deriving (Show, Eq)
+
+
+
+data Kind = KindVar
+          | KindApp Kind Kind
+          deriving (Show, Eq)
+
+data TypedBinding = TBBData Kind TopLevelDecl
+                  | TBBCon Ident Type Constructor
+                  | TBBFunc Type TopLevelDecl
+                  deriving (Show, Eq) 
+
+data UntypedFunc = UTFunc (Maybe Type) TopLevelDecl
+		 deriving (Show, Eq)
+
+
+
+normaliseType (TypeParen t) = t
+normaliseType (TypeApp t1 t2) = TypeApp (normaliseType t1) (normaliseType t2)
+normaliseType t = t
+
+
+isBaseData (BaseTypeDecl _ _ _ _) = True
+isBaseData _ = False
+
+isBaseFunc (BaseFuncDecl _ _ _) = True
+isBaseFunc _ = False
+
+isSemantic (SemanticDecl _ _ _ _) = True
+isSemantic _ = False
+
+isFuncBind (FuncBindDecl _ _ _) = True
+isFuncBind _ = False
+
+isFuncType (FuncTypeDecl _ _) = True
+isFuncType _ = False
+
+isLexType (IdentCon "Real") = True
+isLexType (IdentCon "Int") = True
+isLexType _ = False
+
 
 {--
 Monad for use in parsing, and contains resulting value.
@@ -99,4 +149,19 @@ instance Monad ParseE where
          Ok a -> k a
          Failed e -> Failed e
   fail a = Failed a
+
+
+data CompilerM a = CompErr String 
+                 | CompSuccess a 
+                 deriving (Show, Eq)
+
+instance Monad CompilerM where
+  return = CompSuccess
+  (CompErr s) >>= g = CompErr s
+  (CompSuccess a) >>= g = g a
+  fail a = CompErr a
+
+instance Functor CompilerM where
+  f `fmap` (CompErr s) = CompErr s
+  f `fmap` (CompSuccess a) = CompSuccess (f a)
 

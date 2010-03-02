@@ -2,8 +2,7 @@ basetype Float "float" = Float Real "$1";
 
 basefunc mulFF :: Float -> Float -> Float "($1 * $2)";
 
-semantic Position a = Position a "POSITION";
+semantic Position a = POS a "POSITION";
 
 vertexFragment :: Position Float -> Position Float;
-
-vertexFragment (Position a) = a;
+vertexFragment (POS a) = POS a;
