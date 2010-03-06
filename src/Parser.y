@@ -16,6 +16,7 @@ import Types
       basetype     { Lexeme _ _ (TokBuiltin "basetype") }
       basefunc     { Lexeme _ _ (TokBuiltin "basefunc") }
       semantic     { Lexeme _ _ (TokBuiltin "semantic") }
+      parameter	   { Lexeme _ _ (TokBuiltin "parameter") }
       '='          { Lexeme _ _ TokEquals }
       '::'         { Lexeme _ _ TokTypeSpec }
       '->'         { Lexeme _ _ TokRArrow }
@@ -48,7 +49,11 @@ TopLevelDecl :: { TopLevelDecl }
   | SemanticDecl                    { $1 }
 
 BaseTypeDecl :: { TopLevelDecl }
-  : basetype con string '=' DataCon string ';' { BaseTypeDecl (IdentCon $2) $3 $5 $6 }
+  : basetype con string BaseTypeCon ';' { BaseTypeDecl (IdentCon $2) $3 $4 }
+
+BaseTypeCon :: { Maybe (Constructor, String) }
+  : '=' DataCon string                  { Just ($2,$3) }
+  |                                     { Nothing }
 
 BaseFuncDecl :: { TopLevelDecl }
   : basefunc ident '::' Type string ';' { BaseFuncDecl (IdentVar $2) $4 $5 }

@@ -18,8 +18,11 @@ module Types
   , Kind (..)
   , TypedBinding (..)
   , UntypedFunc (..)
+  , fromCompilerM
   , normaliseType
   , isBaseData, isBaseFunc, isSemantic, isFuncBind, isFuncType, isLexType
+  , TypeDef(..), BaseConst(..), SemanticConst(..), TypedFunc(..), TypeExp(..), TypePattern(..)
+  , getTExpType, getTPattType, isGenType
   ) where
 
 {-- -- -- -- -- -- -- -- -- -- -- -- --
@@ -54,7 +57,7 @@ data EffectModule = EffectModule [TopLevelDecl]
 data TopLevelDecl = DataDecl Ident [Ident] Constructor 
                   | FuncBindDecl Ident [Pattern] Exp
                   | FuncTypeDecl Ident Type
-                  | BaseTypeDecl Ident String Constructor String
+                  | BaseTypeDecl Ident String (Maybe (Constructor, String))
                   | BaseFuncDecl Ident Type String
                   | SemanticDecl Ident [Ident] Constructor String
                     deriving (Show, Eq)
@@ -115,7 +118,7 @@ normaliseType (TypeApp t1 t2) = TypeApp (normaliseType t1) (normaliseType t2)
 normaliseType t = t
 
 
-isBaseData (BaseTypeDecl _ _ _ _) = True
+isBaseData (BaseTypeDecl _ _ _) = True
 isBaseData _ = False
 
 isBaseFunc (BaseFuncDecl _ _ _) = True
@@ -136,6 +139,57 @@ isLexType _ = False
 
 
 {--
+Typed data decls
+TypeDef(..), BaseConst(..), SemanticConst(..), TypedFunc(..), TypeExp(..), TypePattern(..),
+getTExpType, getTPattType
+--}
+
+data TypeDef = TypeBaseDef Ident Kind (Maybe BaseConst) String
+	     | TypeSemanticDef Ident Kind SemanticConst String
+	     deriving (Show, Eq)
+
+data BaseConst = BaseConst Ident Type String
+	       deriving (Show, Eq)
+
+data SemanticConst = SemanticConst Ident Type
+		   deriving (Show, Eq)
+
+data TypedFunc = TypedTypeConst Ident Type
+	       | TypedBaseFunc Ident Type String
+	       | TypedFuncBind Ident Type [TypePattern] TypeExp
+	       deriving (Show, Eq)
+
+data TypeExp = TypeLiteralExp Literal Type
+         | TypeIdentExp String Type
+         | TypeConsExp String Type
+         | TypeAppExp TypeExp TypeExp Type
+         | TypeParenExp TypeExp Type
+         | TypeTupleExp [TypeExp] Type
+           deriving (Show, Eq)
+
+data TypePattern = TypeIdentPattern String Type
+             | TypeConPattern String Type
+             | TypeParenPattern TypePattern Type
+             | TypeAppPattern TypePattern TypePattern Type
+             deriving (Show, Eq)
+
+
+getTExpType (TypeLiteralExp _ t) = t
+getTExpType (TypeIdentExp _ t) = t
+getTExpType (TypeConsExp _ t) = t
+getTExpType (TypeAppExp _ _ t) = t
+getTExpType (TypeParenExp _ t) = t
+getTExpType (TypeTupleExp _ t) = t
+
+getTPattType (TypeIdentPattern _ t) = t
+getTPattType (TypeConPattern _ t) = t
+getTPattType (TypeParenPattern _ t) = t
+getTPattType (TypeAppPattern _ _ t) = t
+
+isGenType (TypeGen _ _) = True
+isGenType _ = False
+
+{--
 Monad for use in parsing, and contains resulting value.
 --}
 data ParseE a = Ok a 
@@ -154,6 +208,8 @@ instance Monad ParseE where
 data CompilerM a = CompErr String 
                  | CompSuccess a 
                  deriving (Show, Eq)
+
+fromCompilerM (CompSuccess a) = a
 
 instance Monad CompilerM where
   return = CompSuccess

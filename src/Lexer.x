@@ -11,6 +11,7 @@ import Data.List
 
 $digit = 0-9
 $alpha = [a-zA-Z]
+$alphanum = [$digit $alpha]
 $up = [A-Z]
 $special   = [\(\)\,\;\[\]\`\{\}]
 $ascsymbol = [\!\#\$\%\&\*\+\.\/\<\=\>\?\@\\\^\|\-\~]
@@ -26,6 +27,7 @@ tokens :-
   basetype              { \p _ -> mT p $ TokBuiltin "basetype" }
   basefunc              { \p _ -> mT p $ TokBuiltin "basefunc" }
   semantic              { \p _ -> mT p $ TokBuiltin "semantic" }
+  parameter		{ \p _ -> mT p $ TokBuiltin "parameter" }
   =                     { \p _ -> mT p $ TokEquals }
   ::                    { \p _ -> mT p $ TokTypeSpec }
   \(                    { \p _ -> mT p $ TokOpenParen }
@@ -36,10 +38,10 @@ tokens :-
 
   \-?$digit+            { \p s -> mT p $ TokIntLit s }
   \?$digit+\.$digit+    { \p s -> mT p $ TokRealLit s }
-  \" @string* \"        { \p s -> mT p $ TokStringLit s }
+  \" @string* \"        { \p s -> mT p $ TokStringLit (take ((length s) - 2) (tail s)) }
 
-  $up$alpha*            { \p s -> mT p $ TokConId s }
-  $alpha+               { \p s -> mT p $ TokIdentId s }
+  $up$alphanum*            { \p s -> mT p $ TokConId s }
+  $alpha$alphanum*         { \p s -> mT p $ TokIdentId s }
 
 {
 

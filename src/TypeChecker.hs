@@ -12,37 +12,6 @@ import Data.List
 import Data.Maybe
 import Types
 
-
-data TypeDef = TypeBaseDef Ident Kind BaseConst String
-	     | TypeSemanticDef Ident Kind SemanticConst String
-	     deriving (Show, Eq)
-
-data BaseConst = BaseConst Ident Type String
-	       deriving (Show, Eq)
-
-data SemanticConst = SemanticConst Ident Type
-		   deriving (Show, Eq)
-
-data TypedFunc = TypedTypeConst Ident Type
-	       | TypedBaseFunc Ident Type String
-	       | TypedFuncBind Ident Type [TypePattern] TypeExp
-	       deriving (Show, Eq)
-
-data TypeExp = TypeLiteralExp Literal Type
-         | TypeIdentExp String Type
-         | TypeConsExp String Type
-         | TypeAppExp TypeExp TypeExp Type
-         | TypeParenExp TypeExp Type
-         | TypeTupleExp [TypeExp] Type
-           deriving (Show, Eq)
-
-       
-data TypePattern = TypeIdentPattern String Type
-             | TypeConPattern String Type
-             | TypeParenPattern TypePattern Type
-             | TypeAppPattern TypePattern TypePattern Type
-             deriving (Show, Eq)
-
 data Environ = Environ [(Ident, Type)]
 	     deriving (Show, Eq)
 
@@ -53,20 +22,6 @@ type TCStateM = StateT TCState CompilerM
 freshTypeVar :: TCStateM Type
 freshTypeVar = StateT (\s -> return (TypeId (tcstateID s), TCState $ (tcstateID s)+1))
 
-getTExpType (TypeLiteralExp _ t) = t
-getTExpType (TypeIdentExp _ t) = t
-getTExpType (TypeConsExp _ t) = t
-getTExpType (TypeAppExp _ _ t) = t
-getTExpType (TypeParenExp _ t) = t
-getTExpType (TypeTupleExp _ t) = t
-
-getTPattType (TypeIdentPattern _ t) = t
-getTPattType (TypeConPattern _ t) = t
-getTPattType (TypeParenPattern _ t) = t
-getTPattType (TypeAppPattern _ _ t) = t
-
-isGenType (TypeGen _ _) = True
-isGenType _ = False
 
 {--------------
 Type Checker
@@ -127,19 +82,28 @@ checkBaseTypeDecls m = do
   results <- mapM checkBaseType tlds
   env <- lift $ foldM (mergeEnvsErrorM "Multiple declarations of base type") 
 	 (Environ []) (map (\(_,_,x) -> x) results)
-  return (map (\(x,_,_) -> x) results, map (\(_,x,_) -> x) results, env)
+  return (map (\(x,_,_) -> x) results
+	 , map fromJust (filter isJust (map (\(_,x,_) -> x) results))
+	 , env)
 
-checkBaseType :: TopLevelDecl -> TCStateM (TypeDef, TypedFunc, Environ)
-checkBaseType (BaseTypeDecl i ts (Constructor ci cts) cs) = do
+checkBaseType :: TopLevelDecl -> TCStateM (TypeDef, Maybe TypedFunc, Environ)
+checkBaseType (BaseTypeDecl i ts (Just ((Constructor ci cts),cs))) = do
   kind <- return KindVar
   contype <- return $ foldr (\a b -> TypeApp a b) (TypeCon i) cts
   if validBaseDataType contype
-     then return ( TypeBaseDef i kind (BaseConst ci contype cs) ts
-		 , TypedTypeConst ci contype
+     then return ( TypeBaseDef i kind (Just $ BaseConst ci contype cs) ts
+		 , Just $ TypedTypeConst ci contype
 		 , Environ [(ci, contype)] )
      else lift $ fail "Invalid base type"
   where validBaseDataType (TypeApp (TypeCon con) t2) = isLexType con && validBaseDataType t2
         validBaseDataType (TypeCon con) = True
+
+checkBaseType (BaseTypeDecl i ts Nothing) = do
+  kind <- return KindVar
+  return (TypeBaseDef i kind Nothing ts
+	 , Nothing
+	 , Environ [])
+
 checkBaseType _ = lift $ fail "Invalid base type"
 
 {---
@@ -198,7 +162,7 @@ checkFuncs m env = do
   tcs <- mapM (genFuncTypeConstraint env') fts
   s <- (lift . unify) (cs ++ tcs)
   finalFuncs <- return $ map (applySubsToTFunc s) typedFuncs
-  return (finalFuncs)
+  return finalFuncs
   where makeTypedFunc (FuncBindDecl ident ps expr) = do
 	  v <- freshTypeVar
 	  tps <- mapM makeTypedPattern ps
@@ -262,14 +226,6 @@ applySubsToTPatt s (TypeConPattern c t) = TypeConPattern c (applySubstitution s 
 applySubsToTPatt s (TypeParenPattern p t) = TypeParenPattern (applySubsToTPatt s p) (applySubstitution s t)
 applySubsToTPatt s (TypeAppPattern p1 p2 t) = TypeAppPattern (applySubsToTPatt s p1) (applySubsToTPatt s p2) (applySubstitution s t)
 
-{--
-
-data TypePattern = TypeIdentPattern String Type
-             | TypeConPattern String Type
-             | TypeParenPattern TypePattern Type
-             | TypeAppPattern TypePattern TypePattern Type
-             deriving (Show, Eq)
---}
 	
 genFuncConstraints env (TypedFuncBind i t ps expr) = do
   let n = foldr (\p r -> TypeFunc (getTPattType p) r) (getTExpType expr) ps
@@ -300,7 +256,7 @@ genPattConstraints env (TypeParenPattern p t) = do
 genPattConstraints env (TypeAppPattern p1 p2 t) = do
   a <- genPattConstraints env p1
   a' <- genPattConstraints env p2
-  return ([(getTPattType p1, TypeApp (getTPattType p2) t)] ++ a ++ a')
+  return ([(getTPattType p1, TypeFunc (getTPattType p2) t)] ++ a ++ a')
 
 genPattConstraints _ _ = return []
 
@@ -338,29 +294,16 @@ instanceGeneric (TypeGen v t) = do
 	replaceType v' (TypeApp t t') = TypeApp (replaceType v' t) (replaceType v' t')
 	replaceType _ t = t
 
-{--
-
-data Type = TypeCon Ident
-          | TypeVar Ident
-          | TypeFunc Type Type
-          | TypeParen Type
-          | TypeApp Type Type
-	  | TypeId Integer
-	  | TypeGen Ident Type
-          deriving (Show, Eq)
-
---}
-
 {-- Entry point --}
 
-typeCheck' :: EffectModule -> TCStateM String
+--typeCheck' :: EffectModule -> TCStateM String
 typeCheck' a = do
   (btypes, btcons, env1) <- checkBaseTypeDecls a
   (bfuncs, env2) <- checkBaseFuncDecls a btypes
   (stypes, scons, env3) <- checkSemanticDecls a btypes
   let env4 = mergeEnvs (mergeEnvs env1 env2) env3
-  env5 <- checkFuncs a env4
-  return $ intercalate "-----------" (map show env5)
+  funcs <- checkFuncs a env4
+  return $ (btypes ++ stypes, btcons ++ bfuncs ++ scons ++ funcs)
 
 typeCheck a = do 
   (a, _) <- runStateT (typeCheck' a) (TCState 0)
@@ -383,26 +326,12 @@ applySubstitution a t@(TypeId _) =
   in if isJust r then fromJust r
 		 else t
 applySubstitution a (TypeApp t t') = TypeApp (applySubstitution a t) (applySubstitution a t')
-applySubstitution a (TypeFunc t t') = TypeApp (applySubstitution a t) (applySubstitution a t')
+applySubstitution a (TypeFunc t t') = TypeFunc (applySubstitution a t) (applySubstitution a t')
 applySubstitution a (TypeParen t) = TypeParen (applySubstitution a t)
 applySubstitution a b = b
 
 applySubstitutions a bs = map (\(t,t') -> (applySubstitution a t, applySubstitution a t')) bs
 
-{--
-idSubstitution = snd
-
-makeSubstitution i t = (\(x,y) -> if i == x then t else y)
-composeSubstitution a b = (\x@(y,z) -> let n = a x in if n == z then b x else n)
-
-applySubstitution a t@(TypeId tid) = a (tid, t)
-applySubstitution a (TypeApp t t') = TypeApp (applySubstitution a t) (applySubstitution a t')
-applySubstitution a (TypeFunc t t') = TypeApp (applySubstitution a t) (applySubstitution a t')
-applySubstitution a (TypeParen t) = TypeParen (applySubstitution a t)
-applySubstitution a b = b
-
-applySubstitutions a bs = map (\(t,t') -> (applySubstitution a t, applySubstitution a t')) bs
---}
 occours tid (TypeId tid') = tid == tid'
 occours tid (TypeFunc t t') = (occours tid t) || (occours tid t')
 occours tid (TypeApp t t') = (occours tid t) || (occours tid t')
@@ -419,7 +348,7 @@ unifyLoop (tc@(t,t'):tcs) s
 					   else let a = makeSubstitution tid t2 in
 						unifyLoop (applySubstitutions a tcs) (composeSubstitution a s)
 		  (t1, (TypeId tid)) -> unifyLoop (((TypeId tid), t1):tcs) s
-		  _ -> fail "unification failure: bad case"
+		  _ -> fail $ "unification failure: bad case - " ++ (show tc)
 
 unify :: [(Type, Type)] -> CompilerM ([(Type,Type)])
 unify tcs = unifyLoop tcs idSubstitution
