@@ -1,9 +1,23 @@
+-----------------------------------------------
+-- Backend
+-----------------------------------------------
+
 basetype Float4 "float4" = Float Real Real Real Real "float4($1,$2,$3,$4)";
 basetype Matrix44 "matrix44";
 
-basefunc mulF4F4 :: Float4 -> Float4 -> Float4 "($1 * $2)";
+basefunc mulF4F4 :: Float4 -> Matrix44 -> Float4 "mul($1$,$2$)";
 
 semantic Position a = Pos a "POSITION";
 
+-----------------------------------------------
+-- Body
+-----------------------------------------------
+
+parameter worldViewProj :: Matrix44;
+parameter constOut :: Float4;
+
 vertexFragment :: Position Float4 -> Position Float4;
-vertexFragment (Pos p) = Pos p;
+vertexFragment (Pos a) = 
+  let newPos = (mulF4F4 a worldViewProj); 
+      pos2   = (mulF4F4 constOut worldViewProj);
+  in Pos pos2;

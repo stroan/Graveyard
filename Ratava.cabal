@@ -11,5 +11,6 @@ executable Ratava
     base >= 3 && < 6,
     array,
     containers,
-    mtl
+    mtl,
+    MissingH
   other-modules: Lexer, Parser

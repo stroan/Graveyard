@@ -20,7 +20,7 @@ module Types
   , UntypedFunc (..)
   , fromCompilerM
   , normaliseType
-  , isBaseData, isBaseFunc, isSemantic, isFuncBind, isFuncType, isLexType
+  , isBaseData, isBaseFunc, isSemantic, isFuncBind, isFuncType, isParamDecl, isLexType
   , TypeDef(..), BaseConst(..), SemanticConst(..), TypedFunc(..), TypeExp(..), TypePattern(..)
   , getTExpType, getTPattType, isGenType
   ) where
@@ -60,6 +60,7 @@ data TopLevelDecl = DataDecl Ident [Ident] Constructor
                   | BaseTypeDecl Ident String (Maybe (Constructor, String))
                   | BaseFuncDecl Ident Type String
                   | SemanticDecl Ident [Ident] Constructor String
+		  | ParamDecl Ident Type
                     deriving (Show, Eq)
 
 data Ident = IdentVar String
@@ -72,6 +73,7 @@ data Exp = LiteralExp Literal
          | AppExp Exp Exp
          | ParenExp Exp
          | TupleExp [Exp]
+	 | LetExp Ident Exp Exp
            deriving (Show, Eq)
 
 data Literal = LiteralInt String
@@ -133,6 +135,9 @@ isFuncBind _ = False
 isFuncType (FuncTypeDecl _ _) = True
 isFuncType _ = False
 
+isParamDecl (ParamDecl _ _) = True
+isParamDecl _ = False
+
 isLexType (IdentCon "Real") = True
 isLexType (IdentCon "Int") = True
 isLexType _ = False
@@ -157,6 +162,7 @@ data SemanticConst = SemanticConst Ident Type
 data TypedFunc = TypedTypeConst Ident Type
 	       | TypedBaseFunc Ident Type String
 	       | TypedFuncBind Ident Type [TypePattern] TypeExp
+	       | TypedParamDecl Ident Type
 	       deriving (Show, Eq)
 
 data TypeExp = TypeLiteralExp Literal Type
@@ -164,6 +170,7 @@ data TypeExp = TypeLiteralExp Literal Type
          | TypeConsExp String Type
          | TypeAppExp TypeExp TypeExp Type
          | TypeParenExp TypeExp Type
+	 | TypeLetExp Ident TypeExp TypeExp Type
          | TypeTupleExp [TypeExp] Type
            deriving (Show, Eq)
 
@@ -174,12 +181,17 @@ data TypePattern = TypeIdentPattern String Type
              deriving (Show, Eq)
 
 
+isTParamDecl (TypedParamDecl _ _) = True
+isTParamDecl _ = False
+
+
 getTExpType (TypeLiteralExp _ t) = t
 getTExpType (TypeIdentExp _ t) = t
 getTExpType (TypeConsExp _ t) = t
 getTExpType (TypeAppExp _ _ t) = t
 getTExpType (TypeParenExp _ t) = t
 getTExpType (TypeTupleExp _ t) = t
+getTExpType (TypeLetExp _ _ _ t) = t
 
 getTPattType (TypeIdentPattern _ t) = t
 getTPattType (TypeConPattern _ t) = t

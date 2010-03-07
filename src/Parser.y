@@ -17,6 +17,8 @@ import Types
       basefunc     { Lexeme _ _ (TokBuiltin "basefunc") }
       semantic     { Lexeme _ _ (TokBuiltin "semantic") }
       parameter	   { Lexeme _ _ (TokBuiltin "parameter") }
+      let          { Lexeme _ _ (TokBuiltin "let") }
+      in           { Lexeme _ _ (TokBuiltin "in") }
       '='          { Lexeme _ _ TokEquals }
       '::'         { Lexeme _ _ TokTypeSpec }
       '->'         { Lexeme _ _ TokRArrow }
@@ -47,6 +49,7 @@ TopLevelDecl :: { TopLevelDecl }
   | BaseTypeDecl                    { $1 }
   | BaseFuncDecl                    { $1 }
   | SemanticDecl                    { $1 }
+  | ParamDecl                       { $1 }
 
 BaseTypeDecl :: { TopLevelDecl }
   : basetype con string BaseTypeCon ';' { BaseTypeDecl (IdentCon $2) $3 $4 }
@@ -57,6 +60,9 @@ BaseTypeCon :: { Maybe (Constructor, String) }
 
 BaseFuncDecl :: { TopLevelDecl }
   : basefunc ident '::' Type string ';' { BaseFuncDecl (IdentVar $2) $4 $5 }
+
+ParamDecl :: { TopLevelDecl }
+  : parameter ident '::' Type ';'       { ParamDecl (IdentVar $2) $4 }
 
 SemanticDecl :: { TopLevelDecl }
   : semantic con '=' DataCon string ';'   { SemanticDecl (IdentCon $2) [] $4 $5 }
@@ -117,10 +123,18 @@ Expr :: { Exp }
 
 AExpr :: { Exp }
   : LiteralExpr              { $1 }
+  | LetExpr                  { $1 }
   | '(' Expr ')'             { ParenExp $2 }
   | '(' Expr TupleEnd        { TupleExp ($2:$3) }
   | ident                    { IdentExp $1 }
   | con                      { ConsExp $1 }
+
+LetExpr :: { Exp }
+  : let ident '=' Expr ';' LetExpr2     { LetExp (IdentVar $2) $4 $6 } 
+
+LetExpr2 :: { Exp }
+  : in Expr                             { $2 }
+  | ident '=' Expr ';' LetExpr2         { LetExp (IdentVar $1) $3 $5 }
 
 TupleEnd :: { [Exp] }
   : ',' Expr TupleEnd        { $2:$3 }

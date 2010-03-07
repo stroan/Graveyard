@@ -32,6 +32,7 @@ getBaseFuncs (EffectModule tlds) = filter isBaseFunc tlds
 getSemantics (EffectModule tlds) = filter isSemantic tlds
 getFuncBinds (EffectModule tlds) = filter isFuncBind tlds
 getFuncTypes (EffectModule tlds) = filter isFuncType tlds
+getParamDecls (EffectModule tlds) = filter isParamDecl tlds
 
 {---
  Environment functions
@@ -129,6 +130,26 @@ checkBaseFunc tys (BaseFuncDecl ident ty s) =
         validBaseFuncType' (TypeCon con) = typeDefsContain con tys
 
 {---
+  Check parameters
+---}
+checkParamDecls :: EffectModule -> [TypeDef] -> TCStateM ([TypedFunc], Environ)
+checkParamDecls m tys = do
+  let tlds = getParamDecls m
+  results <- mapM (checkParamDecl tys) tlds
+  env <- lift $ foldM (mergeEnvsErrorM "Multiple declarations of parameter")
+	 (Environ []) (map snd results)
+  return (map fst results, env)
+
+checkParamDecl :: [TypeDef] -> TopLevelDecl -> TCStateM (TypedFunc, Environ)
+checkParamDecl tys (ParamDecl i t) = do
+  if validParamType t
+    then return (TypedParamDecl i t, Environ [(i, t)])
+    else fail "invalid parameter"
+  where validParamType (TypeParen p) = validParamType p
+	validParamType (TypeCon c) = typeDefsContain c tys
+	validParamType _ = False
+
+{---
  Semantic decl checking
 ---}
 
@@ -203,6 +224,11 @@ checkFuncs m env = do
 	  v <- freshTypeVar
 	  t <- makeTypedExp p
 	  return (TypeParenExp t v)
+	makeTypedExp (LetExp i e e2) = do
+	  v <- freshTypeVar
+	  t <- makeTypedExp e
+	  t2 <- makeTypedExp e2
+	  return (TypeLetExp i t t2 v)
 	makeTypedExp (TupleExp es) = do
 	  v <- freshTypeVar
 	  ts <- mapM makeTypedExp es
@@ -219,6 +245,7 @@ applySubsToTExpr s (TypeIdentExp i t) = TypeIdentExp i (applySubstitution s t)
 applySubsToTExpr s (TypeConsExp c t) = TypeConsExp c (applySubstitution s t)
 applySubsToTExpr s (TypeAppExp e1 e2 t) = TypeAppExp (applySubsToTExpr s e1) (applySubsToTExpr s e2) (applySubstitution s t)
 applySubsToTExpr s (TypeParenExp p t) = TypeParenExp (applySubsToTExpr s p) (applySubstitution s t)
+applySubsToTExpr s (TypeLetExp i t1 t2 t) = TypeLetExp i (applySubsToTExpr s t1) (applySubsToTExpr s t2) (applySubstitution s t)
 applySubsToTExpr s (TypeTupleExp es t) = undefined
 
 applySubsToTPatt s (TypeIdentPattern i t) = TypeIdentPattern i (applySubstitution s t)
@@ -280,6 +307,12 @@ genExprConstraints env (TypeParenExp e t) = do
   a <- genExprConstraints env e
   return ([(t, getTExpType e)] ++ a)
 
+genExprConstraints env (TypeLetExp i t1 t2 t) = do
+  a <- genExprConstraints env t1
+  let ae = Environ [(i, getTExpType t1)]
+  a2 <- genExprConstraints (mergeEnvs ae env) t2
+  return ([(t, getTExpType t2)] ++ a ++ a2)
+
 genExprConstraints env (TypeLiteralExp (LiteralInt _) t) = return [(t, TypeCon (IdentCon "Integer"))]
 genExprConstraints env (TypeLiteralExp (LiteralReal _) t) = return [(t, TypeCon (IdentCon "Real"))]
 
@@ -300,10 +333,14 @@ instanceGeneric (TypeGen v t) = do
 typeCheck' a = do
   (btypes, btcons, env1) <- checkBaseTypeDecls a
   (bfuncs, env2) <- checkBaseFuncDecls a btypes
+  (pfuncs, penv) <- checkParamDecls a btypes
   (stypes, scons, env3) <- checkSemanticDecls a btypes
-  let env4 = mergeEnvs (mergeEnvs env1 env2) env3
+  let envs = [env1, env2, penv, env3]
+      env4 = foldl mergeEnvs (Environ []) envs
   funcs <- checkFuncs a env4
-  return $ (btypes ++ stypes, btcons ++ bfuncs ++ scons ++ funcs)
+  let rfuncs = concat [btcons, bfuncs, pfuncs, scons, funcs] 
+  let rtypes = concat [btypes, stypes]
+  return (rtypes, rfuncs)
 
 typeCheck a = do 
   (a, _) <- runStateT (typeCheck' a) (TCState 0)

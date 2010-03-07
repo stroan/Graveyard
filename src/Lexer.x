@@ -28,6 +28,8 @@ tokens :-
   basefunc              { \p _ -> mT p $ TokBuiltin "basefunc" }
   semantic              { \p _ -> mT p $ TokBuiltin "semantic" }
   parameter		{ \p _ -> mT p $ TokBuiltin "parameter" }
+  let                   { \p _ -> mT p $ TokBuiltin "let" }
+  in                    { \p _ -> mT p $ TokBuiltin "in" }
   =                     { \p _ -> mT p $ TokEquals }
   ::                    { \p _ -> mT p $ TokTypeSpec }
   \(                    { \p _ -> mT p $ TokOpenParen }
