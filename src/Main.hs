@@ -17,6 +17,10 @@ runTest' content = do
   let tc = do { t <- typeCheck (getParse parseResult); c <- compile t; return (t,c) }
   putStrLn $ show tc
   putStrLn "---------------"
+  if wasCompSuccess tc
+    then do (_,s) <- return $ fromCompilerM tc
+	    putStrLn s
+    else return ()
   where
 	isParseEOk (Ok _) = True
 	isParseEOk _ = False

@@ -14,7 +14,7 @@ $alpha = [a-zA-Z]
 $alphanum = [$digit $alpha]
 $up = [A-Z]
 $special   = [\(\)\,\;\[\]\`\{\}]
-$ascsymbol = [\!\#\$\%\&\*\+\.\/\<\=\>\?\@\\\^\|\-\~]
+$ascsymbol = [\!\#\$\%\&\*\+\.\/\<\=\>\?\@\\\^\|\-\~\_]
 $graphic = [$alpha $digit $special $ascsymbol]
 
 @string  = $graphic # [\"\\] | " "
@@ -38,8 +38,8 @@ tokens :-
   \-\>                  { \p _ -> mT p $ TokRArrow }
   \;                    { \p _ -> mT p $ TokColon }
 
+  \-?$digit+\.$digit+    { \p s -> mT p $ TokRealLit s }
   \-?$digit+            { \p s -> mT p $ TokIntLit s }
-  \?$digit+\.$digit+    { \p s -> mT p $ TokRealLit s }
   \" @string* \"        { \p s -> mT p $ TokStringLit (take ((length s) - 2) (tail s)) }
 
   $up$alphanum*            { \p s -> mT p $ TokConId s }

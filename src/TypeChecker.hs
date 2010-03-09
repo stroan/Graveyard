@@ -27,6 +27,7 @@ freshTypeVar = StateT (\s -> return (TypeId (tcstateID s), TCState $ (tcstateID 
 Type Checker
 --------------}
 
+getDataDecls (EffectModule tlds) = filter isDataDecl tlds
 getBaseDatas (EffectModule tlds) = filter isBaseData tlds
 getBaseFuncs (EffectModule tlds) = filter isBaseFunc tlds
 getSemantics (EffectModule tlds) = filter isSemantic tlds
@@ -90,13 +91,13 @@ checkBaseTypeDecls m = do
 checkBaseType :: TopLevelDecl -> TCStateM (TypeDef, Maybe TypedFunc, Environ)
 checkBaseType (BaseTypeDecl i ts (Just ((Constructor ci cts),cs))) = do
   kind <- return KindVar
-  contype <- return $ foldr (\a b -> TypeApp a b) (TypeCon i) cts
+  contype <- return $ foldr (\a b -> TypeFunc a b) (TypeCon i) cts
   if validBaseDataType contype
      then return ( TypeBaseDef i kind (Just $ BaseConst ci contype cs) ts
 		 , Just $ TypedTypeConst ci contype
 		 , Environ [(ci, contype)] )
      else lift $ fail "Invalid base type"
-  where validBaseDataType (TypeApp (TypeCon con) t2) = isLexType con && validBaseDataType t2
+  where validBaseDataType (TypeFunc (TypeCon con) t2) = isLexType con && validBaseDataType t2
         validBaseDataType (TypeCon con) = True
 
 checkBaseType (BaseTypeDecl i ts Nothing) = do
@@ -143,7 +144,7 @@ checkParamDecls m tys = do
 checkParamDecl :: [TypeDef] -> TopLevelDecl -> TCStateM (TypedFunc, Environ)
 checkParamDecl tys (ParamDecl i t) = do
   if validParamType t
-    then return (TypedParamDecl i t, Environ [(i, t)])
+    then return (TypedParamDecl (IdentVar ("param_" ++ getIdentStr i)) t, Environ [(i, t)])
     else fail "invalid parameter"
   where validParamType (TypeParen p) = validParamType p
 	validParamType (TypeCon c) = typeDefsContain c tys
@@ -169,6 +170,51 @@ checkSemantic tys (SemanticDecl t [tvar] c@(Constructor con [ct]) s) = do
 		, Environ [(con, contype)] )
     else fail $ show contype	
 checkSemantic _ _ = fail "Invalid semantic decl."
+
+{---
+ Data decl checking
+---}
+
+checkDataDecls m tys = do
+  let tlds = getDataDecls m
+  results <- mapM (checkDataDecl tys) tlds
+  env <- lift $ foldM (mergeEnvsErrorM "Multiple declarations of type") 
+	 (Environ []) (map (\(_,_,x) -> x) results)
+  return (map (\(x,_,_) -> x) results, map (\(_,x,_) -> x) results, env)
+
+checkDataDecl tys (DataDecl ident [] (Constructor cident ts)) = do
+  let kind = KindVar
+      contype = foldr (\a b -> TypeFunc a b) (TypeCon ident) ts
+      consD = TypedTypeConst cident contype
+      env = Environ [(cident, contype)]
+  if (length ts) == 1 
+    then return ((TypeDataDef ident kind consD (Just $ head ts))
+		,consD, env)
+    else return ((TypeDataDef ident kind consD Nothing)
+		,consD, env)
+  where validDataDecl (TypeFunc a t2) = validPType a && validDataDecl' t2
+        validDataDecl _ = False
+        validDataDecl' (TypeFunc a t2) = validPType a && validDataDecl' t2
+        validDataDecl' (TypeCon con) = con == ident
+
+	validPType ty = 
+	  let con = getTypeCon ty
+	      args = getTypeParams ty
+	      conD = head $ filter (\x -> getTypeName x == con) tys
+	      argCount = argsFromKind (getTypeKind conD)
+	      vArgs = map validPType args
+	  in ((length args) == argCount) && (and vArgs)
+
+	argsFromKind (KindApp _ k) = 1 + argsFromKind k
+	argsFromKind _ = 0
+
+	
+      
+
+{--
+| TypeDataDef Ident Kind TypedFunc (Maybe Type)
+TypedTypeConst Ident Type
+--}
 
 {---
  Function typing.
@@ -315,6 +361,7 @@ genExprConstraints env (TypeLetExp i t1 t2 t) = do
 
 genExprConstraints env (TypeLiteralExp (LiteralInt _) t) = return [(t, TypeCon (IdentCon "Integer"))]
 genExprConstraints env (TypeLiteralExp (LiteralReal _) t) = return [(t, TypeCon (IdentCon "Real"))]
+genExprConstraints env (TypeLiteralExp (LiteralString _) t) = return [(t, TypeCon (IdentCon "String"))]
 
 instanceGeneric (TypeGen v t) = do
   v' <- freshTypeVar
@@ -337,9 +384,10 @@ typeCheck' a = do
   (stypes, scons, env3) <- checkSemanticDecls a btypes
   let envs = [env1, env2, penv, env3]
       env4 = foldl mergeEnvs (Environ []) envs
-  funcs <- checkFuncs a env4
-  let rfuncs = concat [btcons, bfuncs, pfuncs, scons, funcs] 
-  let rtypes = concat [btypes, stypes]
+  (dtypes, dfuncs, denv) <- checkDataDecls a (btypes ++ stypes) 
+  funcs <- checkFuncs a (mergeEnvs env4 denv)
+  let rfuncs = concat [btcons, bfuncs, pfuncs, scons, dfuncs, funcs] 
+  let rtypes = concat [btypes, stypes, dtypes]
   return (rtypes, rfuncs)
 
 typeCheck a = do 
@@ -388,5 +436,7 @@ unifyLoop (tc@(t,t'):tcs) s
 		  _ -> fail $ "unification failure: bad case - " ++ (show tc)
 
 unify :: [(Type, Type)] -> CompilerM ([(Type,Type)])
-unify tcs = unifyLoop tcs idSubstitution
+unify tcs = do
+  let ntcs = map (\(t1,t2) -> (normaliseType t1, normaliseType t2)) tcs
+  unifyLoop ntcs idSubstitution
 

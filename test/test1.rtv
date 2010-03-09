@@ -2,12 +2,29 @@
 -- Backend
 -----------------------------------------------
 
-basetype Float4 "float4" = Float Real Real Real Real "float4($1,$2,$3,$4)";
+basetype Float4 "float4" = Float4 Real Real Real Real "float4($1$,$2$,$3$,$4$)";
+basetype Float2 "float2" = Float2 Real Real "float2($1$,$2$)";
 basetype Matrix44 "matrix44";
+basetype Texture "texture";
+basetype Sampler "sampler" = Sampler String "sampler_state{Texture = <$1$>;mipfilter = Linear;AddressU = Clamp;AddressV = Clamp;};";
 
 basefunc mulF4F4 :: Float4 -> Matrix44 -> Float4 "mul($1$,$2$)";
+basefunc addF4 :: Float4 -> Float4 -> Float4 "($1$ + $2$)";
+basefunc tex2D :: Sampler -> Float2 -> Float4 "tex2D($1$, $2$)"; 
+basefunc inormF4 :: Float4 -> Float4 "normalize($1$)";
 
 semantic Position a = Pos a "POSITION";
+
+-----------------------------------------------
+-- Utils
+-----------------------------------------------
+
+data NormalisedF4 = NF4 Float4;
+
+norm a = NF4 (inormF4 a);
+
+getNF :: NormalisedF4 -> Float4;
+getNF (NF4 a) = a;
 
 -----------------------------------------------
 -- Body
@@ -15,9 +32,21 @@ semantic Position a = Pos a "POSITION";
 
 parameter worldViewProj :: Matrix44;
 parameter constOut :: Float4;
+constOut = Float4 1.0 1.0 1.0 1.0;
 
-vertexFragment :: Position Float4 -> Position Float4;
-vertexFragment (Pos a) = 
-  let newPos = (mulF4F4 a worldViewProj); 
-      pos2   = (mulF4F4 constOut worldViewProj);
+parameter tex :: Texture;
+parameter texSampler :: Sampler;
+texSampler = Sampler "tex";
+
+data VSInput = VSInput (Position Float4);
+
+getVSIPos (VSInput (Pos a)) = a;
+
+vertexFragment :: VSInput -> Position Float4;
+vertexFragment v = 
+  let a      = getVSIPos v;
+      newPos = addF4 a constOut; 
+      color  = tex2D texSampler (Float2 0.0 0.0);
+      pos2   = mulF4F4 newPos worldViewProj;
+      ssss   = getNF (norm (Float4 0.0 0.0 0.0 0.0));
   in Pos pos2;

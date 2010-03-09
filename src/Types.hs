@@ -18,9 +18,9 @@ module Types
   , Kind (..)
   , TypedBinding (..)
   , UntypedFunc (..)
-  , fromCompilerM
-  , normaliseType
-  , isBaseData, isBaseFunc, isSemantic, isFuncBind, isFuncType, isParamDecl, isLexType
+  , fromCompilerM, wasCompSuccess
+  , normaliseType, getIdentStr, getLiteralStr, getTypeCon, getTypeParams, getTypeName, getTypeKind
+  , isBaseData, isBaseFunc, isSemantic, isFuncBind, isFuncType, isParamDecl, isLexType, isDataDecl
   , TypeDef(..), BaseConst(..), SemanticConst(..), TypedFunc(..), TypeExp(..), TypePattern(..)
   , getTExpType, getTPattType, isGenType
   ) where
@@ -99,8 +99,6 @@ data Type = TypeCon Ident
 data Constructor = Constructor Ident [Type]
                  deriving (Show, Eq)
 
-
-
 data Kind = KindVar
           | KindApp Kind Kind
           deriving (Show, Eq)
@@ -115,10 +113,13 @@ data UntypedFunc = UTFunc (Maybe Type) TopLevelDecl
 
 
 
-normaliseType (TypeParen t) = t
+normaliseType (TypeParen t) = normaliseType t
 normaliseType (TypeApp t1 t2) = TypeApp (normaliseType t1) (normaliseType t2)
+normaliseType (TypeFunc t1 t2) = TypeFunc (normaliseType t1) (normaliseType t2)
 normaliseType t = t
 
+isDataDecl (DataDecl _ _ _) = True
+isDataDecl _ = False
 
 isBaseData (BaseTypeDecl _ _ _) = True
 isBaseData _ = False
@@ -140,7 +141,15 @@ isParamDecl _ = False
 
 isLexType (IdentCon "Real") = True
 isLexType (IdentCon "Int") = True
+isLexType (IdentCon "String") = True
 isLexType _ = False
+
+getIdentStr (IdentVar i) = i
+getIdentStr (IdentCon c) = c
+
+getLiteralStr (LiteralInt s) = s
+getLiteralStr (LiteralString s) = s
+getLiteralStr (LiteralReal s) = s
 
 
 {--
@@ -151,6 +160,7 @@ getTExpType, getTPattType
 
 data TypeDef = TypeBaseDef Ident Kind (Maybe BaseConst) String
 	     | TypeSemanticDef Ident Kind SemanticConst String
+	     | TypeDataDef Ident Kind TypedFunc (Maybe Type)
 	     deriving (Show, Eq)
 
 data BaseConst = BaseConst Ident Type String
@@ -181,9 +191,16 @@ data TypePattern = TypeIdentPattern String Type
              deriving (Show, Eq)
 
 
+getTypeName (TypeBaseDef i _ _ _) = i
+getTypeName (TypeSemanticDef i _ _ _) = i
+getTypeName (TypeDataDef i _ _ _) = i
+
+getTypeKind (TypeBaseDef _ k _ _) = k
+getTypeKind (TypeSemanticDef _ k _ _) = k
+getTypeKind (TypeDataDef _ k _ _) = k
+
 isTParamDecl (TypedParamDecl _ _) = True
 isTParamDecl _ = False
-
 
 getTExpType (TypeLiteralExp _ t) = t
 getTExpType (TypeIdentExp _ t) = t
@@ -197,6 +214,14 @@ getTPattType (TypeIdentPattern _ t) = t
 getTPattType (TypeConPattern _ t) = t
 getTPattType (TypeParenPattern _ t) = t
 getTPattType (TypeAppPattern _ _ t) = t
+
+getTypeParams (TypeApp t d) = (getTypeParams t) ++ [d]
+getTypeParams (TypeParen p) = getTypeParams p
+getTypeParams _ = []
+
+getTypeCon (TypeApp t _) = getTypeCon t
+getTypeCon (TypeCon c) = c
+getTypeCon (TypeParen t) = getTypeCon t
 
 isGenType (TypeGen _ _) = True
 isGenType _ = False
@@ -221,6 +246,9 @@ data CompilerM a = CompErr String
                  | CompSuccess a 
                  deriving (Show, Eq)
 
+
+wasCompSuccess (CompSuccess a) = True
+wasCompSuccess _ = False
 fromCompilerM (CompSuccess a) = a
 
 instance Monad CompilerM where
