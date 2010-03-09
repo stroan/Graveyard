@@ -40,6 +40,8 @@ texSampler = Sampler "tex";
 
 data VSInput = VSInput (Position Float4);
 
+data PSInput = PSInput Float4 Float4;
+
 getVSIPos (VSInput (Pos a)) = a;
 
 vertexFragment :: VSInput -> Position Float4;
