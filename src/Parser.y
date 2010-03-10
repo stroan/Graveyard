@@ -19,6 +19,9 @@ import Types
       parameter	   { Lexeme _ _ (TokBuiltin "parameter") }
       let          { Lexeme _ _ (TokBuiltin "let") }
       in           { Lexeme _ _ (TokBuiltin "in") }
+      if           { Lexeme _ _ (TokBuiltin "if") }
+      then         { Lexeme _ _ (TokBuiltin "then") }
+      else         { Lexeme _ _ (TokBuiltin "else") }
       '='          { Lexeme _ _ TokEquals }
       '::'         { Lexeme _ _ TokTypeSpec }
       '->'         { Lexeme _ _ TokRArrow }
@@ -124,10 +127,14 @@ Expr :: { Exp }
 AExpr :: { Exp }
   : LiteralExpr              { $1 }
   | LetExpr                  { $1 }
+  | IfExpr                   { $1 }
   | '(' Expr ')'             { ParenExp $2 }
   | '(' Expr TupleEnd        { TupleExp ($2:$3) }
   | ident                    { IdentExp $1 }
   | con                      { ConsExp $1 }
+
+IfExpr :: { Exp }
+  : if Expr then Expr else Expr { IfExp $2 $4 $6 }
 
 LetExpr :: { Exp }
   : let ident '=' Expr ';' LetExpr2     { LetExp (IdentVar $2) $4 $6 } 

@@ -30,6 +30,9 @@ tokens :-
   parameter		{ \p _ -> mT p $ TokBuiltin "parameter" }
   let                   { \p _ -> mT p $ TokBuiltin "let" }
   in                    { \p _ -> mT p $ TokBuiltin "in" }
+  if                    { \p _ -> mT p $ TokBuiltin "if" }
+  then                  { \p _ -> mT p $ TokBuiltin "then" }
+  else                  { \p _ -> mT p $ TokBuiltin "else" }
   =                     { \p _ -> mT p $ TokEquals }
   ::                    { \p _ -> mT p $ TokTypeSpec }
   \(                    { \p _ -> mT p $ TokOpenParen }

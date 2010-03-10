@@ -275,6 +275,12 @@ checkFuncs m env = do
 	  t <- makeTypedExp e
 	  t2 <- makeTypedExp e2
 	  return (TypeLetExp i t t2 v)
+	makeTypedExp (IfExp c t f) = do
+	  v <- freshTypeVar
+	  c' <- makeTypedExp c
+	  t' <- makeTypedExp t
+	  f' <- makeTypedExp f
+	  return (TypeIfExp c' t' f' v)
 	makeTypedExp (TupleExp es) = do
 	  v <- freshTypeVar
 	  ts <- mapM makeTypedExp es
@@ -292,6 +298,7 @@ applySubsToTExpr s (TypeConsExp c t) = TypeConsExp c (applySubstitution s t)
 applySubsToTExpr s (TypeAppExp e1 e2 t) = TypeAppExp (applySubsToTExpr s e1) (applySubsToTExpr s e2) (applySubstitution s t)
 applySubsToTExpr s (TypeParenExp p t) = TypeParenExp (applySubsToTExpr s p) (applySubstitution s t)
 applySubsToTExpr s (TypeLetExp i t1 t2 t) = TypeLetExp i (applySubsToTExpr s t1) (applySubsToTExpr s t2) (applySubstitution s t)
+applySubsToTExpr s (TypeIfExp c t f ty) = TypeIfExp (applySubsToTExpr s c) (applySubsToTExpr s t) (applySubsToTExpr s f) (applySubstitution s ty)
 applySubsToTExpr s (TypeTupleExp es t) = undefined
 
 applySubsToTPatt s (TypeIdentPattern i t) = TypeIdentPattern i (applySubstitution s t)
@@ -356,8 +363,16 @@ genExprConstraints env (TypeParenExp e t) = do
 genExprConstraints env (TypeLetExp i t1 t2 t) = do
   a <- genExprConstraints env t1
   let ae = Environ [(i, getTExpType t1)]
-  a2 <- genExprConstraints (mergeEnvs ae env) t2
+  a2 <- genExprConstraints (mergeEnvs env ae) t2
   return ([(t, getTExpType t2)] ++ a ++ a2)
+
+genExprConstraints env (TypeIfExp c t f ty) = do
+  t' <- genExprConstraints env t
+  f' <- genExprConstraints env f
+  c' <- genExprConstraints env c
+  return ([(TypeCon (IdentCon "Bool"), getTExpType c)
+	  ,(getTExpType t, getTExpType f)
+	  ,(ty, getTExpType t)] ++ t' ++ f' ++ c') 
 
 genExprConstraints env (TypeLiteralExp (LiteralInt _) t) = return [(t, TypeCon (IdentCon "Integer"))]
 genExprConstraints env (TypeLiteralExp (LiteralReal _) t) = return [(t, TypeCon (IdentCon "Real"))]

@@ -74,6 +74,7 @@ data Exp = LiteralExp Literal
          | ParenExp Exp
          | TupleExp [Exp]
 	 | LetExp Ident Exp Exp
+	 | IfExp Exp Exp Exp
            deriving (Show, Eq)
 
 data Literal = LiteralInt String
@@ -182,6 +183,7 @@ data TypeExp = TypeLiteralExp Literal Type
          | TypeParenExp TypeExp Type
 	 | TypeLetExp Ident TypeExp TypeExp Type
          | TypeTupleExp [TypeExp] Type
+	 | TypeIfExp TypeExp TypeExp TypeExp Type
            deriving (Show, Eq)
 
 data TypePattern = TypeIdentPattern String Type
@@ -209,6 +211,7 @@ getTExpType (TypeAppExp _ _ t) = t
 getTExpType (TypeParenExp _ t) = t
 getTExpType (TypeTupleExp _ t) = t
 getTExpType (TypeLetExp _ _ _ t) = t
+getTExpType (TypeIfExp _ _ _ t) = t
 
 getTPattType (TypeIdentPattern _ t) = t
 getTPattType (TypeConPattern _ t) = t

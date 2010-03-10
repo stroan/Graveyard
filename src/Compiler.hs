@@ -170,9 +170,11 @@ compileExpr i bind (TypeLiteralExp s _) = return ([], (getLiteralStr s), [])
 
 compileExpr i bind (TypeParenExp e _) = compileExpr i bind e
 
-compileExpr i bind (TypeIdentExp s t) = do
-  b <- lookupBind (IdentVar s) bind
-  return ([], b, [])
+compileExpr i bind e@(TypeIdentExp s t) = do
+  if not $ lookupFuncExists (IdentVar s) i 
+    then do b <- lookupBind (IdentVar s) bind
+	    return ([], b, [])
+    else compileFuncApp i bind e
 
 compileExpr i bind expr@(TypeAppExp t t' _) = do
   func <- return $ getExpFunc t
@@ -189,6 +191,21 @@ compileExpr i bind expr@(TypeLetExp ident t1 t2 _) = do
   let nsrc = [rStr ++ " " ++ v ++ " = " ++ abind ++ ";"]
   (bsrc, bbind, _) <- compileExpr i ((ident,v):bind) t2
   return (asrc ++ nsrc ++ bsrc, bbind, [])
+
+compileExpr i bind expr@(TypeIfExp c t f _) = do
+  let retType = getTExpType t
+  rStr <- getExpTypeStr i retType
+  v <- freshVar
+  (csrc, cbind, _) <- compileExpr i bind c
+  (tsrc, tbind, _) <- compileExpr i bind t
+  (fsrc, fbind, _) <- compileExpr i bind f
+  return (csrc 
+	  ++ [rStr ++ " " ++ v ++ ";"] 
+	  ++ ["if (" ++ cbind ++ ") {"]
+	  ++ tsrc
+	  ++ [v ++ " = " ++ tbind ++ ";}{"] 
+	  ++ fsrc
+	  ++ [v ++ " = " ++ fbind ++ ";}"], v, [])
 
 compileFuncApp i bind expr = do
   func <- return $ getExpFunc expr

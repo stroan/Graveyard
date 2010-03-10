@@ -2,19 +2,26 @@
 -- Backend
 -----------------------------------------------
 
+basetype Bool "bool" = Bool String "$1$";
+
 basetype Float4 "float4" = Float4 Real Real Real Real "float4($1$,$2$,$3$,$4$)";
 basetype Float2 "float2" = Float2 Real Real "float2($1$,$2$)";
 basetype Matrix44 "matrix44";
 basetype Texture "texture";
-basetype Sampler "sampler" = Sampler String "sampler_state{Texture = <$1$>;mipfilter = Linear;AddressU = Clamp;AddressV = Clamp;};";
+basetype Sampler "sampler" = Sampler String "sampler_state{Texture = <$1$>;mipfilter = Linear;AddressU = Clamp;AddressV = Clamp;}";
 
 basefunc mulF4F4 :: Float4 -> Matrix44 -> Float4 "mul($1$,$2$)";
 basefunc addF4 :: Float4 -> Float4 -> Float4 "($1$ + $2$)";
-basefunc tex2D :: Sampler -> Float2 -> Float4 "tex2D($1$, $2$)"; 
+basefunc tex2D :: Sampler -> Float2 -> Float4 "tex2D($1$, $2$)";
 basefunc inormF4 :: Float4 -> Float4 "normalize($1$)";
+
+basefunc eqf4 :: Float4 -> Float4 -> Bool "$1$ == $2$";
 
 semantic Position a = Pos a "POSITION";
 semantic Normal a = Norm a "NORMAL";
+
+true = Bool "true";
+false = Bool "false";
 
 -----------------------------------------------
 -- Utils
@@ -26,7 +33,7 @@ norm a = NF4 (inormF4 a);
 
 getNF :: NormalisedF4 -> Float4;
 getNF (NF4 a) = a;
-
+  
 -----------------------------------------------
 -- Body
 -----------------------------------------------
@@ -42,5 +49,6 @@ texSampler = Sampler "tex";
 data VSInput = VSInput (Position Float4) (Normal Float4);
 data VSOutput = VSOutput (Position Float4);
 
-
-vertexFragment (VSInput (Pos a) (Norm b)) = VSOutput (Pos a);
+vertexFragment (VSInput (Pos a) (Norm b)) = 
+  let a2 = if true then true else false;
+  in VSOutput (Pos a);
