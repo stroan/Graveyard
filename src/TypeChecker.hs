@@ -326,7 +326,7 @@ genPattConstraints env (TypeParenPattern p t) = do
   a <- genPattConstraints env p
   return ([(t, getTPattType p)] ++ a)
 
-genPattConstraints env (TypeAppPattern p1 p2 t) = do
+genPattConstraints env p@(TypeAppPattern p1 p2 t) = do
   a <- genPattConstraints env p1
   a' <- genPattConstraints env p2
   return ([(getTPattType p1, TypeFunc (getTPattType p2) t)] ++ a ++ a')

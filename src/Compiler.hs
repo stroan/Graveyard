@@ -119,6 +119,7 @@ getPattVars (TypeParenPattern p _) = getPattVars p
 getPattVars (TypeAppPattern p t _) = getPattVars p ++ [t]
 getPattVars _ = []
 
+getPattIdent (TypeParenPattern p _) = getPattIdent p
 getPattIdent (TypeIdentPattern s _) = (IdentVar s)
 
 getRecordLength (TypedTypeConst _ t) = getRecordLength' 0 t
@@ -224,10 +225,14 @@ bindParameter i p@(TypeAppPattern _ _ _)  var = do
   where bindParameterApp' funcT
 	  | isTDataDecl funcT && isTDataAlias funcT = bindParameter i (head $ getPattVars p) var
 	  | isTSemantic funcT = bindParameter i (head $ getPattVars p) var
-	  | otherwise = fail "bind not implemented"
+	  | isTDataDecl funcT = do let params = getPattVars p
+				       vars = map (\x -> var ++ ".m" ++ (show x)) [1..]
+				       zpv = zip params vars
+				   concat <$> mapM (\(q, v) -> bindParameter i q v) zpv
+	  | otherwise = fail "bind not impl"
 
-getFuncTypeParams (TypeFunc t d) = t:(getTypeParams d)
-getFuncTypeParams (TypeParen p) = getTypeParams p
+getFuncTypeParams (TypeFunc t d) = t:(getFuncTypeParams d)
+getFuncTypeParams (TypeParen p) = getFuncTypeParams p
 getFuncTypeParams _ = []
 
 compileBaseFuncApp i bind expr = do
@@ -302,6 +307,20 @@ generateReturnType i t = do
   generateRet' conT
   where generateRet' conT
 	  | isTSemantic conT = generateSemanticReturn i t
+	  | isTBaseDef conT = generateBaseDefReturn i t
+	  | isTDataDecl conT = generateDataDeclReturn i t
+
+generateDataDeclReturn i t = do
+  con <- return $ getTypeCon t
+  conT <- lookupType con i
+  if isTDataAlias conT
+    then generateReturnType i (getTDataAlias conT)
+    else return (getIdentStr con, "")
+
+generateBaseDefReturn i t = do
+  ty <- return $ getTypeCon t
+  tyDecl <- lookupType ty i
+  return (getTBaseDefString tyDecl, "")
 
 generateSemanticReturn i t = do
   ty <- return $ getTypeCon t
@@ -312,30 +331,42 @@ generateSemanticReturn i t = do
     then return (getTBaseDefString varTD,": " ++ (getTSemanticString tyDecl))
     else fail "invalid semantic parameter"
   where getParamT (TypeApp _ t) = t
+	getParamT (TypeParen t) = getParamT t
 
 generateFuncParam i p = do
+  v <- freshVar
+  generateFuncParam' i v p
+
+generateFuncParam' i v p = do
   con <- return $ getTypeCon $ getTPattType p
   conT <- lookupType con i
-  generateParam' conT
-  where generateParam' conT
-	  | isTSemantic conT = generateSemanticParam i p
-	  | isTDataDecl conT = generateDataDeclParam i p
+  generateParam' conT v
+  where generateParam' conT v
+	  | isTSemantic conT = generateSemanticParam i v p
+	  | isTDataDecl conT = generateDataDeclParam i v p
+	  | isTBaseDef conT = generateBaseDefParam i v p
 
-generateDataDeclParam i p = do
+generateBaseDefParam i v p = do
+  con <- return $ getTypeCon $ getTPattType p
+  conT <- lookupType con i
+  return ([(getPattIdent p, v)], (getTBaseDefString conT) ++ " " ++ v)
+
+generateDataDeclParam i v p = do
   con <- return $ getTypeCon $ getTPattType p
   conT <- lookupType con i
   if (isTDataAlias conT)
-    then generateFuncParam i (makeNewPatt p (getTDataAlias conT))
-    else fail "not implemented - generateDataDeclParam"
+    then generateFuncParam' i v (makeNewPatt p (getTDataAlias conT))
+    else do str <- return $ (getIdentStr con) ++ " " ++ v
+	    binds <- bindParameter i p v
+	    return (binds, str)
   where makeNewPatt (TypeIdentPattern i _) t = TypeIdentPattern i t
 	makeNewPatt (TypeAppPattern _ b _) t = b
 	makeNewPatt (TypeParenPattern p _) t = makeNewPatt p t
 
-generateSemanticParam i p = do
+generateSemanticParam i v p = do
   ty <- return $ getTypeCon $ getTPattType p
   tyDecl <- lookupType ty i
-  tvars <- return $ getTypeParams $ getTPattType p 
-  v <- freshVar
+  tvars <- return $ getTypeParams $ getTPattType p
   varTD <- lookupType (getTypeIdent (head tvars)) i
   bStr <- return $ getTBaseDefString varTD
   pStr <- return $ getTSemanticString tyDecl
@@ -368,9 +399,33 @@ compileParameter i (TypedParamDecl ident t) = do
 	    return ((IdentVar ide, ide),[str])
 
 getTParamDecls fs = filter isTParamDecl fs
+getTDataDecls ds = filter isTDataDecl ds
 
 isTParamDecl (TypedParamDecl _ _) = True
 isTParamDecl _ = False
+
+{----------------------
+ Compile structs
+----------------------}
+
+compileStructs i = do
+  let ds = getTDataDecls $ fst i
+      ss = filter (not . isTDataAlias) ds
+  concat <$> mapM (compileStruct i) ss
+
+
+--TypeDataDef Ident Kind TypedFunc (Maybe Type)
+compileStruct i (TypeDataDef ident _ (TypedTypeConst _ ty) _) = do
+  let tyCons = getFuncTypeParams ty
+      vars = map (\x -> "m" ++ (show x)) (take (length tyCons) [1..])
+      patts = map (\x -> TypeIdentPattern "a" x) tyCons
+      vpzip = zip vars patts
+  a <- mapM (\(v,p) -> generateFuncParam' i v p) vpzip
+  let ls = map (\x -> (snd x) ++ ";") a
+  return (["struct " ++ (getIdentStr ident) ++ "{"] ++ ls ++ ["};"])
+
+
+
 
 {----------------------
  Entry point
@@ -378,9 +433,10 @@ isTParamDecl _ = False
   
 compile' i = do
   (pbinds, psrc) <- compileParameters i
+  ss <- compileStructs i
   vf <- lookupFunc (IdentVar "vertexFragment") i
   cf <- compileFunc i vf pbinds
-  let src = psrc ++ [""] ++ [cf]
+  let src = psrc ++ [""] ++ ss ++ [""] ++ [cf]
       output = intercalate "\n" src
   return output
 

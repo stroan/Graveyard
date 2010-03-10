@@ -14,6 +14,7 @@ basefunc tex2D :: Sampler -> Float2 -> Float4 "tex2D($1$, $2$)";
 basefunc inormF4 :: Float4 -> Float4 "normalize($1$)";
 
 semantic Position a = Pos a "POSITION";
+semantic Normal a = Norm a "NORMAL";
 
 -----------------------------------------------
 -- Utils
@@ -38,17 +39,8 @@ parameter tex :: Texture;
 parameter texSampler :: Sampler;
 texSampler = Sampler "tex";
 
-data VSInput = VSInput (Position Float4);
+data VSInput = VSInput (Position Float4) (Normal Float4);
+data VSOutput = VSOutput (Position Float4);
 
-data PSInput = PSInput Float4 Float4;
 
-getVSIPos (VSInput (Pos a)) = a;
-
-vertexFragment :: VSInput -> Position Float4;
-vertexFragment v = 
-  let a      = getVSIPos v;
-      newPos = addF4 a constOut; 
-      color  = tex2D texSampler (Float2 0.0 0.0);
-      pos2   = mulF4F4 newPos worldViewProj;
-      ssss   = getNF (norm (Float4 0.0 0.0 0.0 0.0));
-  in Pos pos2;
+vertexFragment (VSInput (Pos a) (Norm b)) = VSOutput (Pos a);

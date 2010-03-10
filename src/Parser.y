@@ -98,7 +98,7 @@ AFuncParam :: { Pattern }
   | '(' BFuncParam ')'            { ParenPattern $2 }
 
 BFuncParam :: { Pattern }
-  : AFuncParam BFuncParam         { AppPattern $1 $2 }
+  : BFuncParam AFuncParam         { AppPattern $1 $2 }
   | AFuncParam                    { $1 }
 
 FuncTypeDecl :: { TopLevelDecl }
