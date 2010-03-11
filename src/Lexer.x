@@ -33,6 +33,10 @@ tokens :-
   if                    { \p _ -> mT p $ TokBuiltin "if" }
   then                  { \p _ -> mT p $ TokBuiltin "then" }
   else                  { \p _ -> mT p $ TokBuiltin "else" }
+  loop			{ \p _ -> mT p $ TokBuiltin "loop" }
+  while			{ \p _ -> mT p $ TokBuiltin "while" }
+  with			{ \p _ -> mT p $ TokBuiltin "with" }
+  technique             { \p _ -> mT p $ TokBuiltin "technique" }
   =                     { \p _ -> mT p $ TokEquals }
   ::                    { \p _ -> mT p $ TokTypeSpec }
   \(                    { \p _ -> mT p $ TokOpenParen }

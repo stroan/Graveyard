@@ -7,6 +7,7 @@ module Types
   , ParseE (..)
   , EffectModule (..)
   , TopLevelDecl (..)
+  , PassDecl (..)
   , Ident (..)
   , Exp (..)
   , Pattern (..)
@@ -19,8 +20,8 @@ module Types
   , TypedBinding (..)
   , UntypedFunc (..)
   , fromCompilerM, wasCompSuccess
-  , normaliseType, getIdentStr, getLiteralStr, getTypeCon, getTypeParams, getTypeName, getTypeKind
-  , isBaseData, isBaseFunc, isSemantic, isFuncBind, isFuncType, isParamDecl, isLexType, isDataDecl
+  , normaliseType, getIdentStr, getLiteralStr, getTypeCon, getTypeParams, getTypeName, getTypeKind, getFuncName
+  , isBaseData, isBaseFunc, isSemantic, isFuncBind, isFuncType, isParamDecl, isLexType, isDataDecl, isTechniqueDecl
   , TypeDef(..), BaseConst(..), SemanticConst(..), TypedFunc(..), TypeExp(..), TypePattern(..)
   , getTExpType, getTPattType, isGenType
   ) where
@@ -61,7 +62,11 @@ data TopLevelDecl = DataDecl Ident [Ident] Constructor
                   | BaseFuncDecl Ident Type String
                   | SemanticDecl Ident [Ident] Constructor String
 		  | ParamDecl Ident Type
+		  | TechniqueDecl Ident [PassDecl]
                     deriving (Show, Eq)
+
+data PassDecl = PassDecl Ident [(String, String, Ident)]
+		deriving (Show, Eq)
 
 data Ident = IdentVar String
            | IdentCon String
@@ -75,6 +80,7 @@ data Exp = LiteralExp Literal
          | TupleExp [Exp]
 	 | LetExp Ident Exp Exp
 	 | IfExp Exp Exp Exp
+	 | LoopExp Ident Ident Exp
            deriving (Show, Eq)
 
 data Literal = LiteralInt String
@@ -140,8 +146,11 @@ isFuncType _ = False
 isParamDecl (ParamDecl _ _) = True
 isParamDecl _ = False
 
+isTechniqueDecl (TechniqueDecl _ _) = True
+isTechniqueDecl _ = False
+
 isLexType (IdentCon "Real") = True
-isLexType (IdentCon "Int") = True
+isLexType (IdentCon "Integer") = True
 isLexType (IdentCon "String") = True
 isLexType _ = False
 
@@ -153,6 +162,11 @@ getLiteralStr (LiteralString s) = s
 getLiteralStr (LiteralReal s) = s
 
 
+getFuncName (TypedTypeConst i _) = i
+getFuncName (TypedBaseFunc i _ _) = i
+getFuncName (TypedFuncBind i _ _ _) = i
+getFuncName (TypedParamDecl i _) = i
+
 {--
 Typed data decls
 TypeDef(..), BaseConst(..), SemanticConst(..), TypedFunc(..), TypeExp(..), TypePattern(..),
@@ -162,6 +176,7 @@ getTExpType, getTPattType
 data TypeDef = TypeBaseDef Ident Kind (Maybe BaseConst) String
 	     | TypeSemanticDef Ident Kind SemanticConst String
 	     | TypeDataDef Ident Kind TypedFunc (Maybe Type)
+	     | TypeTechniqueDecl Ident [PassDecl]
 	     deriving (Show, Eq)
 
 data BaseConst = BaseConst Ident Type String
@@ -184,6 +199,7 @@ data TypeExp = TypeLiteralExp Literal Type
 	 | TypeLetExp Ident TypeExp TypeExp Type
          | TypeTupleExp [TypeExp] Type
 	 | TypeIfExp TypeExp TypeExp TypeExp Type
+	 | TypeLoopExp Ident Ident TypeExp Type
            deriving (Show, Eq)
 
 data TypePattern = TypeIdentPattern String Type
@@ -212,6 +228,7 @@ getTExpType (TypeParenExp _ t) = t
 getTExpType (TypeTupleExp _ t) = t
 getTExpType (TypeLetExp _ _ _ t) = t
 getTExpType (TypeIfExp _ _ _ t) = t
+getTExpType (TypeLoopExp _ _ _ t) = t
 
 getTPattType (TypeIdentPattern _ t) = t
 getTPattType (TypeConPattern _ t) = t

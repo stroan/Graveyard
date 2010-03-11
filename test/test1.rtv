@@ -3,6 +3,7 @@
 -----------------------------------------------
 
 basetype Bool "bool" = Bool String "$1$";
+basetype Int "int" = Int Integer "$1$";
 
 basetype Float4 "float4" = Float4 Real Real Real Real "float4($1$,$2$,$3$,$4$)";
 basetype Float2 "float2" = Float2 Real Real "float2($1$,$2$)";
@@ -16,9 +17,11 @@ basefunc tex2D :: Sampler -> Float2 -> Float4 "tex2D($1$, $2$)";
 basefunc inormF4 :: Float4 -> Float4 "normalize($1$)";
 
 basefunc eqf4 :: Float4 -> Float4 -> Bool "$1$ == $2$";
+basefunc eqI :: Int -> Int -> Bool "$1$ == $2$";
 
 semantic Position a = Pos a "POSITION";
 semantic Normal a = Norm a "NORMAL";
+semantic Color a = Col a "COLOR";
 
 true = Bool "true";
 false = Bool "false";
@@ -33,7 +36,7 @@ norm a = NF4 (inormF4 a);
 
 getNF :: NormalisedF4 -> Float4;
 getNF (NF4 a) = a;
-  
+
 -----------------------------------------------
 -- Body
 -----------------------------------------------
@@ -49,6 +52,16 @@ texSampler = Sampler "tex";
 data VSInput = VSInput (Position Float4) (Normal Float4);
 data VSOutput = VSOutput (Position Float4);
 
+myfunc i c = addF4 i i;
+mycond i c = eqI c (Int 3);
+
 vertexFragment (VSInput (Pos a) (Norm b)) = 
   let a2 = if true then true else false;
+      a3 = loop myfunc while mycond with (Float4 1.0 1.0 1.0 1.0);
   in VSOutput (Pos a);
+
+pixelFragment = Col (Float4 1.0 1.0 1.0 1.0);
+
+technique mainTechnique = ( 
+  pass1 = ( "VertexShader" = vertexFragment :: "vs_2_0";
+	    "PixelShader" = pixelFragment :: "ps_2_0";); );

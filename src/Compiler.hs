@@ -20,12 +20,6 @@ type CStateM = StateT CState CompilerM
 freshVar :: CStateM String
 freshVar = StateT (\s -> return (("var" ++ (show (cstateID s))), CState $ (cstateID s)+1))
 
-
-getFuncName (TypedTypeConst i _) = i
-getFuncName (TypedBaseFunc i _ _) = i
-getFuncName (TypedFuncBind i _ _ _) = i
-getFuncName (TypedParamDecl i _) = i
-
 getFuncByName i fs = head (filter (\x -> getFuncName x == i) fs)
 
 {--
@@ -62,6 +56,9 @@ isTypeCon _ = False
 
 isTBaseFunc (TypedBaseFunc _ _ _) = True
 isTBaseFunc _ = False
+
+isTTechniqueDecl (TypeTechniqueDecl _ _) = True
+isTTechniqueDecl _ = False
 
 getFuncType (TypedTypeConst _ t) = t
 getFuncType (TypedFuncBind _ t _ _) = t
@@ -203,9 +200,46 @@ compileExpr i bind expr@(TypeIfExp c t f _) = do
 	  ++ [rStr ++ " " ++ v ++ ";"] 
 	  ++ ["if (" ++ cbind ++ ") {"]
 	  ++ tsrc
-	  ++ [v ++ " = " ++ tbind ++ ";}{"] 
+	  ++ [v ++ " = " ++ tbind ++ ";}else{"] 
 	  ++ fsrc
 	  ++ [v ++ " = " ++ fbind ++ ";}"], v, [])
+
+compileExpr i bind expr@(TypeLoopExp l w s _) = do
+  aVar <- freshVar
+  cVar <- freshVar
+  (ssrc, sbind, _) <- compileExpr i bind s
+  wexp <- makeTestExp
+  (wsrc, wbind, _) <- compileExpr i ((IdentVar "a", aVar):(IdentVar "c", cVar):bind) wexp
+  lexp <- makeLoopExp
+  (lsrc, lbind, _) <- compileExpr i ((IdentVar "a", aVar):(IdentVar "c", cVar):bind) lexp
+  let retType = getTExpType expr
+  rStr <- getExpTypeStr i retType
+  let src = ssrc ++
+	    ["int " ++ cVar ++ " = 0;"
+	    ,rStr ++ " " ++ aVar ++ " = " ++ sbind ++ ";"] 
+	    ++ wsrc ++
+	    ["while (!(" ++ wbind ++ ")) {"]
+	    ++ lsrc ++
+	    ["aVar = " ++ lbind ++ ";"
+	    ,"cVar++;"]
+	    ++ wsrc ++
+	    ["}"]
+  return (src, aVar, [])
+  where makeTestExp = do
+	  a <- lookupFunc w i
+	  ps <- return (getFuncTypeParams (getFuncType a))
+	  let e1 = (TypeAppExp (TypeIdentExp (getIdentStr w) (getFuncType a)) (TypeIdentExp "a" (ps !! 0)) (getLeft (getFuncType a)))
+	      e2 = (TypeAppExp e1 (TypeIdentExp "c" (ps !! 1)) (TypeCon (IdentCon "Bool")))
+	  return e2
+
+	makeLoopExp = do
+	  a <- lookupFunc l i
+	  let ps = getFuncTypeParams (getFuncType a)
+	      e1 = (TypeAppExp (TypeIdentExp (getIdentStr l) (getFuncType a)) (TypeIdentExp "a" (ps !! 0)) (getLeft (getFuncType a)))
+	      e2 = (TypeAppExp e1 (TypeIdentExp "c" (ps !! 1)) (getTExpType expr))
+	  return e2
+
+	getLeft (TypeFunc t t2) = t2
 
 compileFuncApp i bind expr = do
   func <- return $ getExpFunc expr
@@ -451,11 +485,39 @@ compileStruct i (TypeDataDef ident _ (TypedTypeConst _ ty) _) = do
 compile' i = do
   (pbinds, psrc) <- compileParameters i
   ss <- compileStructs i
-  vf <- lookupFunc (IdentVar "vertexFragment") i
-  cf <- compileFunc i vf pbinds
-  let src = psrc ++ [""] ++ ss ++ [""] ++ [cf]
+  let techniques = filter isTTechniqueDecl (fst i)
+  ts <- mapM compileTechnique techniques
+  let tsrc = concat $ map fst ts 
+      tfncs = concat $ map snd ts
+  fs <- mapM (compileF pbinds) tfncs 
+  let src = psrc ++ [""] 
+	    ++ ss ++ [""] 
+	    ++ fs ++ [""]
+	    ++ tsrc
       output = intercalate "\n" src
   return output
+  where compileF pbinds ident = do
+	  vf <- lookupFunc ident i
+	  compileFunc i vf pbinds
+
+	compileTechnique (TypeTechniqueDecl ident ps) = do
+	  let ts = ["technique " ++ (getIdentStr ident) ++ "{"]
+	  cps <- mapM compilePass ps
+	  let s = concat $ map fst cps
+	      f = concat $ map snd cps
+	      te = ["};"]
+	  return (ts ++ s ++ te, f)
+
+	compilePass (PassDecl ident fs) = do
+	  let ts = ["pass " ++ (getIdentStr ident) ++ "{"]
+	  cps <- mapM compileFragment fs
+	  let s = concat $ map fst cps
+	      f = map snd cps
+	      te = ["};"]
+	  return (ts ++ s ++ te, f)
+
+	compileFragment (stage, model, ident) = do
+	  return ([stage ++ " = compile " ++ model ++ " " ++ (getIdentStr ident) ++ "();"], ident) 
 
 compile a = do 
   (a, _) <- runStateT (compile' a) (CState 0)

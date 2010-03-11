@@ -34,6 +34,7 @@ getSemantics (EffectModule tlds) = filter isSemantic tlds
 getFuncBinds (EffectModule tlds) = filter isFuncBind tlds
 getFuncTypes (EffectModule tlds) = filter isFuncType tlds
 getParamDecls (EffectModule tlds) = filter isParamDecl tlds
+getTechniqueDecls (EffectModule tlds) = filter isTechniqueDecl tlds
 
 {---
  Environment functions
@@ -209,7 +210,18 @@ checkDataDecl tys (DataDecl ident [] (Constructor cident ts)) = do
 	argsFromKind _ = 0
 
 	
-      
+checkTechniques m fs = do
+  let ts = getTechniqueDecls m
+  mapM (checkTechnique fs) ts
+
+checkTechnique fs (TechniqueDecl ident ps) = do
+  mapM checkPass ps
+  return (TypeTechniqueDecl ident ps)
+  where checkPass (PassDecl i gs) = mapM checkFragment gs
+	checkFragment (_,_,f) = do
+	  let fl = null $ filter (\x -> getFuncName x == f) fs
+	  if fl then fail "invalid technique"
+		else return ()
 
 {--
 | TypeDataDef Ident Kind TypedFunc (Maybe Type)
@@ -281,6 +293,10 @@ checkFuncs m env = do
 	  t' <- makeTypedExp t
 	  f' <- makeTypedExp f
 	  return (TypeIfExp c' t' f' v)
+	makeTypedExp (LoopExp l w i) = do
+	  v <- freshTypeVar
+	  i' <- makeTypedExp i
+	  return (TypeLoopExp l w i' v)
 	makeTypedExp (TupleExp es) = do
 	  v <- freshTypeVar
 	  ts <- mapM makeTypedExp es
@@ -299,6 +315,7 @@ applySubsToTExpr s (TypeAppExp e1 e2 t) = TypeAppExp (applySubsToTExpr s e1) (ap
 applySubsToTExpr s (TypeParenExp p t) = TypeParenExp (applySubsToTExpr s p) (applySubstitution s t)
 applySubsToTExpr s (TypeLetExp i t1 t2 t) = TypeLetExp i (applySubsToTExpr s t1) (applySubsToTExpr s t2) (applySubstitution s t)
 applySubsToTExpr s (TypeIfExp c t f ty) = TypeIfExp (applySubsToTExpr s c) (applySubsToTExpr s t) (applySubsToTExpr s f) (applySubstitution s ty)
+applySubsToTExpr s (TypeLoopExp l w i ty) = TypeLoopExp l w (applySubsToTExpr s i) (applySubstitution s ty)
 applySubsToTExpr s (TypeTupleExp es t) = undefined
 
 applySubsToTPatt s (TypeIdentPattern i t) = TypeIdentPattern i (applySubstitution s t)
@@ -374,6 +391,15 @@ genExprConstraints env (TypeIfExp c t f ty) = do
 	  ,(getTExpType t, getTExpType f)
 	  ,(ty, getTExpType t)] ++ t' ++ f' ++ c') 
 
+genExprConstraints env (TypeLoopExp l w s ty) = do
+  s' <- genExprConstraints env s
+  lt <- getFromEnvironM l env
+  wt <- getFromEnvironM w env
+  return ([(ty, getTExpType s)
+	  ,(lt, (TypeFunc (getTExpType s) (TypeFunc (TypeCon (IdentCon "Int")) (getTExpType s))))
+	  ,(wt, (TypeFunc (getTExpType s) (TypeFunc (TypeCon (IdentCon "Int")) (TypeCon (IdentCon "Bool")))))]
+	  ++ s')
+
 genExprConstraints env (TypeLiteralExp (LiteralInt _) t) = return [(t, TypeCon (IdentCon "Integer"))]
 genExprConstraints env (TypeLiteralExp (LiteralReal _) t) = return [(t, TypeCon (IdentCon "Real"))]
 genExprConstraints env (TypeLiteralExp (LiteralString _) t) = return [(t, TypeCon (IdentCon "String"))]
@@ -401,8 +427,9 @@ typeCheck' a = do
       env4 = foldl mergeEnvs (Environ []) envs
   (dtypes, dfuncs, denv) <- checkDataDecls a (btypes ++ stypes) 
   funcs <- checkFuncs a (mergeEnvs env4 denv)
+  techs <- checkTechniques a funcs
   let rfuncs = concat [btcons, bfuncs, pfuncs, scons, dfuncs, funcs] 
-  let rtypes = concat [btypes, stypes, dtypes]
+  let rtypes = concat [btypes, stypes, dtypes, techs]
   return (rtypes, rfuncs)
 
 typeCheck a = do 
