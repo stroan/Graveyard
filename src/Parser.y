@@ -165,11 +165,13 @@ IfExpr :: { Exp }
   : if Expr then Expr else Expr { IfExp $2 $4 $6 }
 
 LetExpr :: { Exp }
-  : let ident '=' Expr ';' LetExpr2     { LetExp (IdentVar $2) $4 $6 } 
+  : let ident '=' Expr ';' LetExpr2     { LetExp (IdentVar $2) [] $4 $6 } 
+  | let ident FuncParams '=' Expr ';' LetExpr2     { LetExp (IdentVar $2) $3 $5 $7 } 
 
 LetExpr2 :: { Exp }
   : in Expr                             { $2 }
-  | ident '=' Expr ';' LetExpr2         { LetExp (IdentVar $1) $3 $5 }
+  | ident '=' Expr ';' LetExpr2         { LetExp (IdentVar $1) [] $3 $5 }
+  | ident FuncParams '=' Expr ';' LetExpr2     { LetExp (IdentVar $1) $2 $4 $6 } 
 
 TupleEnd :: { [Exp] }
   : ',' Expr TupleEnd        { $2:$3 }

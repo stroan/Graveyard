@@ -282,11 +282,12 @@ checkFuncs m env = do
 	  v <- freshTypeVar
 	  t <- makeTypedExp p
 	  return (TypeParenExp t v)
-	makeTypedExp (LetExp i e e2) = do
+	makeTypedExp (LetExp i ps e e2) = do
 	  v <- freshTypeVar
+	  ps' <- mapM makeTypedPattern ps
 	  t <- makeTypedExp e
 	  t2 <- makeTypedExp e2
-	  return (TypeLetExp i t t2 v)
+	  return (TypeLetExp i ps' t t2 v)
 	makeTypedExp (IfExp c t f) = do
 	  v <- freshTypeVar
 	  c' <- makeTypedExp c
@@ -313,7 +314,7 @@ applySubsToTExpr s (TypeIdentExp i t) = TypeIdentExp i (applySubstitution s t)
 applySubsToTExpr s (TypeConsExp c t) = TypeConsExp c (applySubstitution s t)
 applySubsToTExpr s (TypeAppExp e1 e2 t) = TypeAppExp (applySubsToTExpr s e1) (applySubsToTExpr s e2) (applySubstitution s t)
 applySubsToTExpr s (TypeParenExp p t) = TypeParenExp (applySubsToTExpr s p) (applySubstitution s t)
-applySubsToTExpr s (TypeLetExp i t1 t2 t) = TypeLetExp i (applySubsToTExpr s t1) (applySubsToTExpr s t2) (applySubstitution s t)
+applySubsToTExpr s (TypeLetExp i ps t1 t2 t) = TypeLetExp i (map (applySubsToTPatt s) ps) (applySubsToTExpr s t1) (applySubsToTExpr s t2) (applySubstitution s t)
 applySubsToTExpr s (TypeIfExp c t f ty) = TypeIfExp (applySubsToTExpr s c) (applySubsToTExpr s t) (applySubsToTExpr s f) (applySubstitution s ty)
 applySubsToTExpr s (TypeLoopExp l w i ty) = TypeLoopExp l w (applySubsToTExpr s i) (applySubstitution s ty)
 applySubsToTExpr s (TypeTupleExp es t) = undefined
@@ -326,14 +327,15 @@ applySubsToTPatt s (TypeAppPattern p1 p2 t) = TypeAppPattern (applySubsToTPatt s
 	
 genFuncConstraints env (TypedFuncBind i t ps expr) = do
   let n = foldr (\p r -> TypeFunc (getTPattType p) r) (getTExpType expr) ps
-      env' =  mergeEnvs env (Environ $ concat (map getBindings ps))
+      env' =  mergeEnvs env (Environ $ concat (map getPattBindings ps))
   pcs <- concat <$> mapM (genPattConstraints env) ps
   cs <- genExprConstraints env' expr
   return $ (t, n):(cs ++ pcs)
-  where getBindings (TypeIdentPattern s t) = [(IdentVar s, t)]
-	getBindings (TypeParenPattern p t) = getBindings p
-	getBindings (TypeAppPattern p p' t) = (getBindings p) ++ (getBindings p')
-	getBindings _ = []
+
+getPattBindings (TypeIdentPattern s t) = [(IdentVar s, t)]
+getPattBindings (TypeParenPattern p t) = getPattBindings p
+getPattBindings (TypeAppPattern p p' t) = (getPattBindings p) ++ (getPattBindings p')
+getPattBindings _ = []
 
 genFuncTypeConstraint env (FuncTypeDecl i t) = do
   a <- getFromEnvironM i env
@@ -377,11 +379,20 @@ genExprConstraints env (TypeParenExp e t) = do
   a <- genExprConstraints env e
   return ([(t, getTExpType e)] ++ a)
 
-genExprConstraints env (TypeLetExp i t1 t2 t) = do
+genExprConstraints env (TypeLetExp i [] t1 t2 t) = do
   a <- genExprConstraints env t1
   let ae = Environ [(i, getTExpType t1)]
   a2 <- genExprConstraints (mergeEnvs env ae) t2
   return ([(t, getTExpType t2)] ++ a ++ a2)
+
+genExprConstraints env (TypeLetExp i ps t1 t2 t) = do
+  pcs <- concat <$> mapM (genPattConstraints env) ps
+  let e = Environ $ concat $ map getPattBindings ps
+  a <- genExprConstraints (mergeEnvs env e) t1
+  let n = foldr (\p r -> TypeFunc (getTPattType p) r) (getTExpType t1) ps
+      ae = Environ [(i, n)]
+  a2 <- genExprConstraints (mergeEnvs env ae) t2
+  return (pcs ++ a ++ a2 ++ [(t, getTExpType t2)])
 
 genExprConstraints env (TypeIfExp c t f ty) = do
   t' <- genExprConstraints env t

@@ -19,7 +19,7 @@ module Types
   , Kind (..)
   , TypedBinding (..)
   , UntypedFunc (..)
-  , fromCompilerM, wasCompSuccess
+  , fromCompilerM, wasCompSuccess, fromCompilerME
   , normaliseType, getIdentStr, getLiteralStr, getTypeCon, getTypeParams, getTypeName, getTypeKind, getFuncName
   , isBaseData, isBaseFunc, isSemantic, isFuncBind, isFuncType, isParamDecl, isLexType, isDataDecl, isTechniqueDecl
   , TypeDef(..), BaseConst(..), SemanticConst(..), TypedFunc(..), TypeExp(..), TypePattern(..)
@@ -78,7 +78,7 @@ data Exp = LiteralExp Literal
          | AppExp Exp Exp
          | ParenExp Exp
          | TupleExp [Exp]
-	 | LetExp Ident Exp Exp
+	 | LetExp Ident [Pattern] Exp Exp
 	 | IfExp Exp Exp Exp
 	 | LoopExp Ident Ident Exp
            deriving (Show, Eq)
@@ -196,7 +196,7 @@ data TypeExp = TypeLiteralExp Literal Type
          | TypeConsExp String Type
          | TypeAppExp TypeExp TypeExp Type
          | TypeParenExp TypeExp Type
-	 | TypeLetExp Ident TypeExp TypeExp Type
+	 | TypeLetExp Ident [TypePattern] TypeExp TypeExp Type
          | TypeTupleExp [TypeExp] Type
 	 | TypeIfExp TypeExp TypeExp TypeExp Type
 	 | TypeLoopExp Ident Ident TypeExp Type
@@ -226,7 +226,7 @@ getTExpType (TypeConsExp _ t) = t
 getTExpType (TypeAppExp _ _ t) = t
 getTExpType (TypeParenExp _ t) = t
 getTExpType (TypeTupleExp _ t) = t
-getTExpType (TypeLetExp _ _ _ t) = t
+getTExpType (TypeLetExp _ _ _ _ t) = t
 getTExpType (TypeIfExp _ _ _ t) = t
 getTExpType (TypeLoopExp _ _ _ t) = t
 
@@ -270,6 +270,7 @@ data CompilerM a = CompErr String
 wasCompSuccess (CompSuccess a) = True
 wasCompSuccess _ = False
 fromCompilerM (CompSuccess a) = a
+fromCompilerME (CompErr s) = s
 
 instance Monad CompilerM where
   return = CompSuccess

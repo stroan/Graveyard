@@ -1,76 +1,26 @@
 -----------------------------------------------
--- Backend
------------------------------------------------
-
-basetype Bool "bool" = Bool String "$1$";
-basetype Int "int" = Int Integer "$1$";
-baseside SideEffect "TRIANGLE void";
-
-basetype Float4 "float4" = Float4 Real Real Real Real "float4($1$,$2$,$3$,$4$)";
-basetype Float2 "float2" = Float2 Real Real "float2($1$,$2$)";
-basetype Matrix44 "matrix44";
-basetype Texture "texture";
-basetype Sampler "sampler" = Sampler String "sampler_state{Texture = <$1$>;mipfilter = Linear;AddressU = Clamp;AddressV = Clamp;}";
-
-basetype Float4Array "AttribArray<float4>";
-
-basefunc mulF4F4 :: Float4 -> Matrix44 -> Float4 "mul($1$,$2$)";
-basefunc addF4 :: Float4 -> Float4 -> Float4 "($1$ + $2$)";
-basefunc tex2D :: Sampler -> Float2 -> Float4 "tex2D($1$, $2$)";
-basefunc inormF4 :: Float4 -> Float4 "normalize($1$)";
-
-basefunc restartStrip :: SideEffect "restartStrip()";
-basefunc restartStrip2 :: SideEffect "restartStrip2()";
-basefunc nullOp :: SideEffect "";
-
-basefunc inF4A :: Float4Array -> Int -> Float4 "$1$[$2$]";
-
-basefunc eqf4 :: Float4 -> Float4 -> Bool "$1$ == $2$";
-basefunc eqI :: Int -> Int -> Bool "$1$ == $2$";
-
-semantic Position a = Pos a "POSITION";
-semantic Normal a = Norm a "NORMAL";
-semantic Color a = Col a "COLOR";
-
-true = Bool "true";
-false = Bool "false";
-
------------------------------------------------
--- Utils
------------------------------------------------
-
-data NormalisedF4 = NF4 Float4;
-
-norm a = NF4 (inormF4 a);
-
-getNF :: NormalisedF4 -> Float4;
-getNF (NF4 a) = a;
-
------------------------------------------------
 -- Body
 -----------------------------------------------
 
 parameter worldViewProj :: Matrix44;
-parameter constOut :: Float4;
-constOut = Float4 1.0 1.0 1.0 1.0;
-
-parameter tex :: Texture;
-parameter texSampler :: Sampler;
-texSampler = Sampler "tex";
+parameter world :: Matrix44;
+parameter lightDir :: Float4;
 
 data VSInput = VSInput (Position Float4) (Normal Float4);
 data VSOutput = VSOutput (Position Float4);
 
-myfunc i c = addF4 i i;
-mycond i c = eqI c (Int 3);
+materialColor = Float4 1.0 0.0 0.0 1.0;
 
-vertexFragment (VSInput (Pos a) (Norm b)) = 
-  let a2 = if true then true else false;
-      a3 = loop myfunc while mycond with (Float4 1.0 1.0 1.0 1.0);
-      se = restartStrip;
-  in VSOutput (Pos a);
+getPosF (Pos a) = a;
 
-pixelFragment = Col (Float4 1.0 1.0 1.0 1.0);
+vertexFragment (VSInput a (Norm b)) = a;
+
+diffuseCalc a b = saturateC (dotN a b);
+
+pixelFragment :: Normal Float4 -> Color Float4;
+pixelFragment (Norm n) = 
+  let diffM = diffuseCalc (norm n) (norm lightDir);
+  in Col (mulCF4 diffM materialColor);
 
 technique mainTechnique = ( 
   pass1 = ( "VertexShader" = vertexFragment :: "vs_2_0";

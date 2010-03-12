@@ -9,6 +9,7 @@ executable Ratava
   main-is: Main.hs
   build-depends: 
     base >= 3 && < 6,
+    haskell98,
     array,
     containers,
     mtl,

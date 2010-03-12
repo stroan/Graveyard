@@ -162,7 +162,7 @@ compileFunc i@(ts, fs) (TypedFuncBind ident t ps e) b = do
   return (pre ++ " " ++ protoType ++ " " ++ post ++ "{\n" ++ body ++ "\n}")
 
 compileBody i binds e = do
-  (src, retBind, bs) <- compileExpr i binds e
+  (src, retBind, bs) <- compileExpr i binds [] e
   se <- isSideEffect i (getTypeCon (getTExpType e))
   if se
     then do return $ intercalate "\n" src
@@ -171,52 +171,58 @@ compileBody i binds e = do
 
 compileExpr :: ([TypeDef], [TypedFunc])
 	    -> [(Ident, [Char])]
+	    -> [(Ident, ([(Ident, [Char])], [TypePattern], TypeExp))]
 	    -> TypeExp
 	    -> StateT CState CompilerM ([String], [Char], [()])
 
-compileExpr i bind (TypeLiteralExp s _) = return ([], (getLiteralStr s), [])
+compileExpr i bind bexps (TypeLiteralExp s _) = return ([], (getLiteralStr s), [])
 
-compileExpr i bind (TypeParenExp e _) = compileExpr i bind e
+compileExpr i bind bexps (TypeParenExp e _) = compileExpr i bind bexps e
 
-compileExpr i bind e@(TypeIdentExp s t) = do
+compileExpr i bind bexps e@(TypeIdentExp s t) = do
   if not $ lookupFuncExists (IdentVar s) i 
     then do b <- lookupBind (IdentVar s) bind
 	    return ([], b, [])
-    else compileFuncApp i bind e
+    else compileFuncApp i bind bexps e
 
-compileExpr i bind expr@(TypeAppExp t t' _) = do
+compileExpr i bind bexps expr@(TypeAppExp t t' _) = do
   func <- return $ getExpFunc t
-  funcD <- lookupFunc func i
-  if isTypeCon funcD
-    then compileTypeCon i bind expr
-    else compileFuncApp i bind expr
+  if (isJust . (lookup func)) bexps
+    then compileLetFuncApp i bind bexps expr
+    else do funcD <- lookupFunc func i
+	    if isTypeCon funcD
+	      then compileTypeCon i bind bexps expr
+	      else compileFuncApp i bind bexps expr
 
-compileExpr i bind expr@(TypeLetExp ident t1 t2 _) = do
+compileExpr i bind bexps expr@(TypeLetExp ident [] t1 t2 _) = do
   let retType = getTExpType t1
   rStr <- getExpTypeStr i retType
   v <- freshVar
-  (asrc, abind, _) <- compileExpr i bind t1
-  (bsrc, bbind, _) <- compileExpr i ((ident,v):bind) t2
+  (asrc, abind, _) <- compileExpr i bind bexps t1
+  (bsrc, bbind, _) <- compileExpr i ((ident,v):bind) bexps t2
   se <- isSideEffect i (getTypeCon retType)
   if se
     then do return (asrc ++ [abind ++ ";"] ++ bsrc, bbind, [])
     else do let nsrc = [rStr ++ " " ++ v ++ " = " ++ abind ++ ";"]
 	    return (asrc ++ nsrc ++ bsrc, bbind, [])
 
-compileExpr i bind expr@(TypeIfExp c t f _) = do
+compileExpr i bind bexps expr@(TypeLetExp ident ps t1 t2 _) = do
+  compileExpr i bind ((ident, (bind, ps, t1)):bexps) t2
+
+compileExpr i bind bexps expr@(TypeIfExp c t f _) = do
   let retType = getTExpType t
   rStr <- getExpTypeStr i retType
   v <- freshVar
-  (csrc, cbind, _) <- compileExpr i bind c
-  (tsrc, tbind, _) <- compileExpr i bind t
-  (fsrc, fbind, _) <- compileExpr i bind f
+  (csrc, cbind, _) <- compileExpr i bind bexps c
+  (tsrc, tbind, _) <- compileExpr i bind bexps t
+  (fsrc, fbind, _) <- compileExpr i bind bexps f
   se <- isSideEffect i (getTypeCon retType)
   if se
     then return (csrc 
 		++ ["if (" ++ cbind ++ ") {"]
-		++ tsrc
+		++ tsrc ++ [tbind ++ ";"]
 		++ ["}else{"] 
-		++ fsrc
+		++ fsrc ++ [fbind ++ ";"]
 		++ ["}"], v, [])
     else return (csrc 
 		++ [rStr ++ " " ++ v ++ ";"] 
@@ -226,14 +232,14 @@ compileExpr i bind expr@(TypeIfExp c t f _) = do
 		++ fsrc
 		++ [v ++ " = " ++ fbind ++ ";}"], v, [])
 
-compileExpr i bind expr@(TypeLoopExp l w s _) = do
+compileExpr i bind bexps expr@(TypeLoopExp l w s _) = do
   aVar <- freshVar
   cVar <- freshVar
-  (ssrc, sbind, _) <- compileExpr i bind s
+  (ssrc, sbind, _) <- compileExpr i bind bexps s
   wexp <- makeTestExp
-  (wsrc, wbind, _) <- compileExpr i ((IdentVar "a", aVar):(IdentVar "c", cVar):bind) wexp
+  (wsrc, wbind, _) <- compileExpr i ((IdentVar "a", aVar):(IdentVar "c", cVar):bind) bexps wexp
   lexp <- makeLoopExp
-  (lsrc, lbind, _) <- compileExpr i ((IdentVar "a", aVar):(IdentVar "c", cVar):bind) lexp
+  (lsrc, lbind, _) <- compileExpr i ((IdentVar "a", aVar):(IdentVar "c", cVar):bind) bexps lexp
   let retType = getTExpType expr
   rStr <- getExpTypeStr i retType
   se <- isSideEffect i (getTypeCon retType)
@@ -274,25 +280,43 @@ compileExpr i bind expr@(TypeLoopExp l w s _) = do
 
 	getLeft (TypeFunc t t2) = t2
 
-compileFuncApp i bind expr = do
+compileLetFuncApp i bind bexps expr = do
+  let func = getExpFunc expr
+      (bs, patts, fexpr) = fromJust $ lookup func bexps
+      args = getExpFuncArgs expr
+  cArgs <- mapM (compileExpr i bind bexps) args
+  let abinds = map (\(_,b,_) -> b) cArgs
+      asrc = concat $ map (\(s,_,_) -> s) cArgs 
+      zap = zip abinds patts
+  nbinds <- concat <$> mapM (\(a,p) -> bindParameter i p a) zap
+  let fbinds = nbinds ++ bs
+  (csrc, cbind, _) <- compileExpr i fbinds bexps fexpr
+  return (asrc ++ csrc, cbind, [])
+
+compileFuncApp :: ([TypeDef], [TypedFunc])
+	       -> [(Ident, [Char])]
+	       -> [(Ident, ([(Ident, [Char])], [TypePattern], TypeExp))]
+	       -> TypeExp
+	       -> StateT CState CompilerM ([String], [Char], [()])
+compileFuncApp i bind bexps expr = do
   func <- return $ getExpFunc expr
   funcD <- lookupFunc func i
   if isTBaseFunc funcD
-    then compileBaseFuncApp i bind expr
-    else compileRegFuncApp i bind expr
+    then compileBaseFuncApp i bind bexps expr
+    else compileRegFuncApp i bind bexps expr
 
-compileRegFuncApp i bind expr = do
+compileRegFuncApp i bind bexps expr = do
   func <- return $ getExpFunc expr
   funcD <- lookupFunc func i
   let args = getExpFuncArgs expr
       patts = getFuncPattern funcD
-  cArgs <- mapM (compileExpr i bind) args
+  cArgs <- mapM (compileExpr i bind bexps) args
   let abinds = map (\(_,b,_) -> b) cArgs
       asrc = concat $ map (\(s,_,_) -> s) cArgs 
       zap = zip abinds patts
   nbinds <- concat <$> mapM (\(a,p) -> bindParameter i p a) zap
   let fbinds = nbinds ++ bind
-  (csrc, cbind, _) <- compileExpr i fbinds (getFuncExpr funcD)
+  (csrc, cbind, _) <- compileExpr i fbinds bexps (getFuncExpr funcD)
   return (asrc ++ csrc, cbind, [])
 
 bindParameter i (TypeIdentPattern ident _) var = do
@@ -319,9 +343,9 @@ getFuncTypeParams (TypeFunc t d) = t:(getFuncTypeParams d)
 getFuncTypeParams (TypeParen p) = getFuncTypeParams p
 getFuncTypeParams _ = []
 
-compileBaseFuncApp i bind expr = do
+compileBaseFuncApp i bind bexps expr = do
   let args = getExpFuncArgs expr
-  cArgs <- mapM (compileExpr i bind) args
+  cArgs <- mapM (compileExpr i bind bexps) args
   let aBinds = map (\(_,b,_) -> b) cArgs
       aSrc = concat $ map (\(s,_,_) -> s) cArgs
       func = getExpFunc expr
@@ -352,38 +376,47 @@ getExpTypeStr i t = do
 	getExpTypeStrSemantic aD = getExpTypeStr i (head $ getTypeParams t)
       
 
-compileTypeCon i bind expr = do
+compileTypeCon i bind bexps expr = do
   a <- return $ getTypeCon $ returnType $ getExpFuncType expr
   aD <- lookupType a i
   compileTypeCon' aD
   where compileTypeCon' aD
-	  | isTSemantic aD = compileTSemantic i bind expr
-	  | isTBaseDef aD = compileTBaseDef i bind expr
-	  | isTDataDecl aD = compileTDataDecl i bind expr
+	  | isTSemantic aD = compileTSemantic i bind bexps expr
+	  | isTBaseDef aD = compileTBaseDef i bind bexps expr
+	  | isTDataDecl aD = compileTDataDecl i bind bexps expr
 	  | otherwise = fail "not implemented compileTypeCon"
 
-compileTSemantic i bind expr = do
+compileTSemantic i bind bexps expr = do
   args <- return $ getExpFuncArgs expr
-  compileExpr i bind (head args)
+  compileExpr i bind bexps (head args)
 
-compileTBaseDef i bind expr = do
+compileTBaseDef i bind bexps expr = do
   a <- return $ getTypeCon $ returnType $ getExpFuncType expr
   aD <- lookupType a i
   func <- return $ getExpFunc expr
   funcD <- lookupFunc func i
   let args = getExpFuncArgs expr
-  cArgs <- mapM (compileExpr i bind) args
+  cArgs <- mapM (compileExpr i bind bexps) args
   let aBinds = map (\(_,b,_) -> b) cArgs
       aSrc = concat $ map (\(s,_,_) -> s) cArgs
       bStr = doTemplateReplace aBinds (getTBaseConstStr aD)
   return (aSrc, bStr, [])
 
-compileTDataDecl i bind expr = do
+compileTDataDecl i bind bexps expr = do
   a <- return $ getTypeCon $ returnType $ getExpFuncType expr
   aD <- lookupType a i
   if isTDataAlias aD
-    then compileExpr i bind (head $ getExpFuncArgs expr)
-    else fail "slsdsflkj"
+    then compileExpr i bind bexps (head $ getExpFuncArgs expr)
+    else do let args = getExpFuncArgs expr
+	    cArgs <- mapM (compileExpr i bind bexps) args
+	    v <- freshVar
+	    let dsrc = [(getIdentStr (getTypeCon (getTExpType expr))) ++ " " ++ v ++ ";"]
+		aBinds = map (\(_,b,_) -> b) cArgs
+		aSrc = concat $ map (\(s,_,_) -> s) cArgs
+		names = map (\x -> v ++ ".m" ++ (show x)) [1..]
+		zbn = zip aBinds names
+		bSrc = map (\(b,n) -> n ++ " = " ++ b ++ ";") zbn
+	    return (dsrc ++ aSrc ++ bSrc, v, [])
 
 generateReturnType i t = do
   con <- return $ getTypeCon t
@@ -476,7 +509,7 @@ compileParameter i (TypedParamDecl ident t) = do
   ide <- return $ (drop 6 $ getIdentStr ident)
   if lookupFuncExists (IdentVar ide) i
     then do (TypedFuncBind _ _ _ expr) <- lookupFunc (IdentVar ide) i
-	    (_, cStr, _) <- compileExpr i [] expr
+	    (_, cStr, _) <- compileExpr i [] [] expr
 	    str <- return $ bStr ++ " " ++ ide ++ " = " ++ cStr ++ ";"
 	    return ((IdentVar ide, ide),[str])
     else do str <- return $ bStr ++ " " ++ ide ++ ";"
