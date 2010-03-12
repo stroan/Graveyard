@@ -14,6 +14,7 @@ import Types
 %token
       data         { Lexeme _ _ (TokBuiltin "data") }
       basetype     { Lexeme _ _ (TokBuiltin "basetype") }
+      baseside     { Lexeme _ _ (TokBuiltin "baseside") }
       basefunc     { Lexeme _ _ (TokBuiltin "basefunc") }
       semantic     { Lexeme _ _ (TokBuiltin "semantic") }
       parameter	   { Lexeme _ _ (TokBuiltin "parameter") }
@@ -60,7 +61,8 @@ TopLevelDecl :: { TopLevelDecl }
   | TechniqueDecl                   { $1 }
 
 BaseTypeDecl :: { TopLevelDecl }
-  : basetype con string BaseTypeCon ';' { BaseTypeDecl (IdentCon $2) $3 $4 }
+  : basetype con string BaseTypeCon ';' { BaseTypeDecl (IdentCon $2) $3 $4 False }
+  | baseside con string BaseTypeCon ';' { BaseTypeDecl (IdentCon $2) $3 $4 True }
 
 BaseTypeCon :: { Maybe (Constructor, String) }
   : '=' DataCon string                  { Just ($2,$3) }

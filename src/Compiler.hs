@@ -28,7 +28,7 @@ data TypeDef = TypeBaseDef Ident Kind BaseConst String
 	     deriving (Show, Eq)
 --}
 
-isTBaseDef (TypeBaseDef _ _ _ _) = True
+isTBaseDef (TypeBaseDef _ _ _ _ _) = True
 isTBaseDef _ = False
 
 {-- TypeDataDef Ident Kind TypedFunc (Maybe Type) --}
@@ -43,9 +43,9 @@ getTDataAlias (TypeDataDef _ _ _ (Just a)) = a
 isTSemantic (TypeSemanticDef _ _ _ _) = True
 isTSemantic _ = False
 
-getTBaseConstStr (TypeBaseDef _ _ (Just (BaseConst _ _ s)) _) = s
+getTBaseConstStr (TypeBaseDef _ _ (Just (BaseConst _ _ s)) _ _) = s
 
-getTBaseDefString (TypeBaseDef _ _ _ s) = s
+getTBaseDefString (TypeBaseDef _ _ _ s _) = s
 
 getTSemanticString (TypeSemanticDef _ _ _ s) = s
 
@@ -139,6 +139,14 @@ getExpFuncArgs (TypeAppExp t t' _) = getExpFuncArgs t ++ [t']
 getExpFuncArgs (TypeParenExp t _) = getExpFuncArgs t
 getExpFuncArgs _ = []
 
+
+
+isSideEffect i ident = do
+  ty <- lookupType ident i
+  return $ isSideEffect' ty
+  where isSideEffect' (TypeBaseDef _ _ _ _ s) = s
+	isSideEffect' _ = False
+
 {-------------
 Compile function
 -------------}
@@ -153,10 +161,13 @@ compileFunc i@(ts, fs) (TypedFuncBind ident t ps e) b = do
   body <- compileBody i ((concat binds) ++ b) e
   return (pre ++ " " ++ protoType ++ " " ++ post ++ "{\n" ++ body ++ "\n}")
 
-compileBody i e binds = do
-  (src, retBind, bs) <- compileExpr i e binds
-  src' <- return $ src ++ ["return " ++ retBind ++ ";"]
-  return $ intercalate "\n" src'
+compileBody i binds e = do
+  (src, retBind, bs) <- compileExpr i binds e
+  se <- isSideEffect i (getTypeCon (getTExpType e))
+  if se
+    then do return $ intercalate "\n" src
+    else do src' <- return $ src ++ ["return " ++ retBind ++ ";"]
+	    return $ intercalate "\n" src'
 
 compileExpr :: ([TypeDef], [TypedFunc])
 	    -> [(Ident, [Char])]
@@ -185,9 +196,12 @@ compileExpr i bind expr@(TypeLetExp ident t1 t2 _) = do
   rStr <- getExpTypeStr i retType
   v <- freshVar
   (asrc, abind, _) <- compileExpr i bind t1
-  let nsrc = [rStr ++ " " ++ v ++ " = " ++ abind ++ ";"]
   (bsrc, bbind, _) <- compileExpr i ((ident,v):bind) t2
-  return (asrc ++ nsrc ++ bsrc, bbind, [])
+  se <- isSideEffect i (getTypeCon retType)
+  if se
+    then do return (asrc ++ [abind ++ ";"] ++ bsrc, bbind, [])
+    else do let nsrc = [rStr ++ " " ++ v ++ " = " ++ abind ++ ";"]
+	    return (asrc ++ nsrc ++ bsrc, bbind, [])
 
 compileExpr i bind expr@(TypeIfExp c t f _) = do
   let retType = getTExpType t
@@ -196,13 +210,21 @@ compileExpr i bind expr@(TypeIfExp c t f _) = do
   (csrc, cbind, _) <- compileExpr i bind c
   (tsrc, tbind, _) <- compileExpr i bind t
   (fsrc, fbind, _) <- compileExpr i bind f
-  return (csrc 
-	  ++ [rStr ++ " " ++ v ++ ";"] 
-	  ++ ["if (" ++ cbind ++ ") {"]
-	  ++ tsrc
-	  ++ [v ++ " = " ++ tbind ++ ";}else{"] 
-	  ++ fsrc
-	  ++ [v ++ " = " ++ fbind ++ ";}"], v, [])
+  se <- isSideEffect i (getTypeCon retType)
+  if se
+    then return (csrc 
+		++ ["if (" ++ cbind ++ ") {"]
+		++ tsrc
+		++ ["}else{"] 
+		++ fsrc
+		++ ["}"], v, [])
+    else return (csrc 
+		++ [rStr ++ " " ++ v ++ ";"] 
+		++ ["if (" ++ cbind ++ ") {"]
+		++ tsrc
+		++ [v ++ " = " ++ tbind ++ ";}else{"] 
+		++ fsrc
+		++ [v ++ " = " ++ fbind ++ ";}"], v, [])
 
 compileExpr i bind expr@(TypeLoopExp l w s _) = do
   aVar <- freshVar
@@ -214,17 +236,28 @@ compileExpr i bind expr@(TypeLoopExp l w s _) = do
   (lsrc, lbind, _) <- compileExpr i ((IdentVar "a", aVar):(IdentVar "c", cVar):bind) lexp
   let retType = getTExpType expr
   rStr <- getExpTypeStr i retType
-  let src = ssrc ++
-	    ["int " ++ cVar ++ " = 0;"
-	    ,rStr ++ " " ++ aVar ++ " = " ++ sbind ++ ";"] 
-	    ++ wsrc ++
-	    ["while (!(" ++ wbind ++ ")) {"]
-	    ++ lsrc ++
-	    ["aVar = " ++ lbind ++ ";"
-	    ,"cVar++;"]
-	    ++ wsrc ++
-	    ["}"]
-  return (src, aVar, [])
+  se <- isSideEffect i (getTypeCon retType)
+  if se
+    then do let src = ssrc ++
+		      ["int " ++ cVar ++ " = 0;"] 
+		      ++ wsrc ++
+		      ["while (!(" ++ wbind ++ ")) {"]
+		      ++ lsrc ++
+		      ["cVar++;"]
+		      ++ wsrc ++
+		      ["}"]
+	    return (src, aVar, [])
+    else do let src = ssrc ++
+		      ["int " ++ cVar ++ " = 0;"
+		      ,rStr ++ " " ++ aVar ++ " = " ++ sbind ++ ";"] 
+		      ++ wsrc ++
+		      ["while (!(" ++ wbind ++ ")) {"]
+		      ++ lsrc ++
+		      ["aVar = " ++ lbind ++ ";"
+		      ,"cVar++;"]
+		      ++ wsrc ++
+		      ["}"]
+	    return (src, aVar, [])
   where makeTestExp = do
 	  a <- lookupFunc w i
 	  ps <- return (getFuncTypeParams (getFuncType a))

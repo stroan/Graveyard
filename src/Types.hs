@@ -58,7 +58,7 @@ data EffectModule = EffectModule [TopLevelDecl]
 data TopLevelDecl = DataDecl Ident [Ident] Constructor 
                   | FuncBindDecl Ident [Pattern] Exp
                   | FuncTypeDecl Ident Type
-                  | BaseTypeDecl Ident String (Maybe (Constructor, String))
+                  | BaseTypeDecl Ident String (Maybe (Constructor, String)) Bool
                   | BaseFuncDecl Ident Type String
                   | SemanticDecl Ident [Ident] Constructor String
 		  | ParamDecl Ident Type
@@ -128,7 +128,7 @@ normaliseType t = t
 isDataDecl (DataDecl _ _ _) = True
 isDataDecl _ = False
 
-isBaseData (BaseTypeDecl _ _ _) = True
+isBaseData (BaseTypeDecl _ _ _ _) = True
 isBaseData _ = False
 
 isBaseFunc (BaseFuncDecl _ _ _) = True
@@ -173,7 +173,7 @@ TypeDef(..), BaseConst(..), SemanticConst(..), TypedFunc(..), TypeExp(..), TypeP
 getTExpType, getTPattType
 --}
 
-data TypeDef = TypeBaseDef Ident Kind (Maybe BaseConst) String
+data TypeDef = TypeBaseDef Ident Kind (Maybe BaseConst) String Bool
 	     | TypeSemanticDef Ident Kind SemanticConst String
 	     | TypeDataDef Ident Kind TypedFunc (Maybe Type)
 	     | TypeTechniqueDecl Ident [PassDecl]
@@ -209,11 +209,11 @@ data TypePattern = TypeIdentPattern String Type
              deriving (Show, Eq)
 
 
-getTypeName (TypeBaseDef i _ _ _) = i
+getTypeName (TypeBaseDef i _ _ _ _) = i
 getTypeName (TypeSemanticDef i _ _ _) = i
 getTypeName (TypeDataDef i _ _ _) = i
 
-getTypeKind (TypeBaseDef _ k _ _) = k
+getTypeKind (TypeBaseDef _ k _ _ _) = k
 getTypeKind (TypeSemanticDef _ k _ _) = k
 getTypeKind (TypeDataDef _ k _ _) = k
 

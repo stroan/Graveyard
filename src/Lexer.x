@@ -25,6 +25,7 @@ tokens :-
 
   data                  { \p _ -> mT p $ TokBuiltin "data" }
   basetype              { \p _ -> mT p $ TokBuiltin "basetype" }
+  baseside              { \p _ -> mT p $ TokBuiltin "baseside" }
   basefunc              { \p _ -> mT p $ TokBuiltin "basefunc" }
   semantic              { \p _ -> mT p $ TokBuiltin "semantic" }
   parameter		{ \p _ -> mT p $ TokBuiltin "parameter" }

@@ -26,23 +26,7 @@ runTest' content = do
 	isParseEOk _ = False
         getParse (Ok x) = x
 	getParse _ = undefined
-     
-runTest content = do
-  let lexResult = scanTokens content
-      parseResult = parseTokens lexResult
-  if isParseEOk parseResult
-    then do t <- typeCheck (getParse parseResult)
-	    c <- compile t
-	    return $ intercalate "\n==>\n" [ content
-					   , show lexResult
-					   , show parseResult
-					   , show t, show c ]
-    else return ""
-  where
-	isParseEOk (Ok _) = True
-	isParseEOk _ = False
-        getParse (Ok x) = x
-	getParse _ = undefined
+    
 
 main = do
   content <- readFile "test/test1.rtv"

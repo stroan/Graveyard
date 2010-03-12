@@ -70,7 +70,7 @@ getFromEnvironM i e =
 TypeDefs and FuncDefs helpers
 --}
 
-typeDefId (TypeBaseDef i _ _ _) = i
+typeDefId (TypeBaseDef i _ _ _ _) = i
 
 typeDefsContain i ts = any (\x -> typeDefId x == i) ts
 
@@ -90,20 +90,20 @@ checkBaseTypeDecls m = do
 	 , env)
 
 checkBaseType :: TopLevelDecl -> TCStateM (TypeDef, Maybe TypedFunc, Environ)
-checkBaseType (BaseTypeDecl i ts (Just ((Constructor ci cts),cs))) = do
+checkBaseType (BaseTypeDecl i ts (Just ((Constructor ci cts),cs)) side) = do
   kind <- return KindVar
   contype <- return $ foldr (\a b -> TypeFunc a b) (TypeCon i) cts
   if validBaseDataType contype
-     then return ( TypeBaseDef i kind (Just $ BaseConst ci contype cs) ts
+     then return ( TypeBaseDef i kind (Just $ BaseConst ci contype cs) ts side
 		 , Just $ TypedTypeConst ci contype
 		 , Environ [(ci, contype)] )
      else lift $ fail "Invalid base type"
   where validBaseDataType (TypeFunc (TypeCon con) t2) = isLexType con && validBaseDataType t2
         validBaseDataType (TypeCon con) = True
 
-checkBaseType (BaseTypeDecl i ts Nothing) = do
+checkBaseType (BaseTypeDecl i ts Nothing s) = do
   kind <- return KindVar
-  return (TypeBaseDef i kind Nothing ts
+  return (TypeBaseDef i kind Nothing ts s
 	 , Nothing
 	 , Environ [])
 
@@ -122,10 +122,10 @@ checkBaseFuncDecls m tys = do
   return (map fst results, env)
 
 checkBaseFunc :: [TypeDef] -> TopLevelDecl -> TCStateM (TypedFunc, Environ)
-checkBaseFunc tys (BaseFuncDecl ident ty s) = 
-  if validBaseFuncType ty
+checkBaseFunc tys decl@(BaseFuncDecl ident ty s) = 
+  if validBaseFuncType' ty
     then return (TypedBaseFunc ident ty s, Environ [(ident, ty)])
-    else fail "invalid base func"
+    else fail $ "invalid base func" ++ (show decl)
   where validBaseFuncType (TypeFunc (TypeCon con) t2) = typeDefsContain con tys && validBaseFuncType' t2
         validBaseFuncType _ = False
         validBaseFuncType' (TypeFunc (TypeCon con) t2) = typeDefsContain con tys && validBaseFuncType' t2
