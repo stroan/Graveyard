@@ -1,27 +1,11 @@
------------------------------------------------
--- Body
------------------------------------------------
+------------------------------------
+-- Directional light, fixed color
+------------------------------------
 
-parameter worldViewProj :: Matrix44;
-parameter world :: Matrix44;
-parameter lightDir :: Float4;
-
-data VSInput = VSInput (Position Float4) (Normal Float4);
-data VSOutput = VSOutput (Position Float4);
-
-materialColor = Float4 1.0 0.0 0.0 1.0;
-
-getPosF (Pos a) = a;
-
-vertexFragment (VSInput a (Norm b)) = a;
-
-diffuseCalc a b = saturateC (dotN a b);
-
-pixelFragment :: Normal Float4 -> Color Float4;
-pixelFragment (Norm n) = 
-  let diffM = diffuseCalc (norm n) (norm lightDir);
-  in Col (mulCF4 diffM materialColor);
+vertexFragment :: Position Float4 -> Normal Float4 -> Float4;
+vertexFragment (Pos a) (Norm b) = 
+  let norm = Float4 1.0 0.0 0.0 1.0;
+  in norm;
 
 technique mainTechnique = ( 
-  pass1 = ( "VertexShader" = vertexFragment :: "vs_2_0";
-	    "PixelShader" = pixelFragment :: "ps_2_0";); );
+  pass1 = ( "VertexShader" = vertexFragment :: "vs_3_0"; ); );

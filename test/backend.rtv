@@ -7,21 +7,43 @@ basetype Int "int" = Int Integer "$1$";
 baseside SideEffect "TRIANGLE void";
 
 basetype Float4 "float4" = Float4 Real Real Real Real "float4($1$,$2$,$3$,$4$)";
+basetype Float3 "float3" = Float3 Real Real Real "float3($1$,$2$,$3$)";
 basetype Float2 "float2" = Float2 Real Real "float2($1$,$2$)";
 basetype Float "float" = Float Real "$1$";
-basetype Matrix44 "matrix44";
+basetype Matrix44 "float4x4";
 basetype Texture "texture";
 basetype Sampler "sampler" = Sampler String "sampler_state{Texture = <$1$>;mipfilter = Linear;AddressU = Clamp;AddressV = Clamp;}";
 
 basetype Float4Array "AttribArray<float4>";
 
+basefunc mFloat4 :: Float -> Float -> Float -> Float -> Float4 "float4($1$,$2$,$3$,$4$)";
+basefunc mFloat3 :: Float -> Float -> Float -> Float3 "float3($1$,$2$,$3$)";
+basefunc mFloat2 :: Float -> Float -> Float2 "float2($1$,$2$)";
+
+basefunc f4x :: Float4 -> Float "$1$.x";
+basefunc f4y :: Float4 -> Float "$1$.y";
+basefunc f4z :: Float4 -> Float "$1$.z";
+basefunc f4w :: Float4 -> Float "$1$.w";
+
+basefunc f4xy :: Float4 -> Float2 "$1$.xy";
+
+basefunc f2x :: Float2 -> Float "$1$.x";
+basefunc f2y :: Float2 -> Float "$1$.y";
+
 basefunc mulF4M4 :: Float4 -> Matrix44 -> Float4 "mul($1$,$2$)";
 basefunc mulFF4 :: Float -> Float4 -> Float4 "mul($1$,$2$)";
+basefunc mulF :: Float -> Float -> Float "($1$ * $2$)";
 basefunc addF4 :: Float4 -> Float4 -> Float4 "($1$ + $2$)";
+basefunc addF2 :: Float2 -> Float2 -> Float2 "($1$ + $2$)";
+basefunc addF :: Float -> Float -> Float "($1$ + $2$)";
+basefunc subF :: Float -> Float -> Float "($1$ - $2$)";
+basefunc subF2 :: Float2 -> Float2 -> Float2 "($1$ - $2$)";
+basefunc magF2 :: Float2 -> Float "mag($1$)";
 basefunc tex2D :: Sampler -> Float2 -> Float4 "tex2D($1$, $2$)";
 basefunc inormF4 :: Float4 -> Float4 "normalize($1$)";
-
 basefunc dotF4 :: Float4 -> Float4 -> Float "dot($1$,$2$)";
+basefunc noise2D :: Float2 -> Float "noise($1$)";
+basefunc noise3D :: Float3 -> Float "noise($1$)";
 
 basefunc restartStrip :: SideEffect "restartStrip()";
 basefunc restartStrip2 :: SideEffect "restartStrip2()";
@@ -31,10 +53,12 @@ basefunc inF4A :: Float4Array -> Int -> Float4 "$1$[$2$]";
 
 basefunc eqf4 :: Float4 -> Float4 -> Bool "$1$ == $2$";
 basefunc eqI :: Int -> Int -> Bool "$1$ == $2$";
+basefunc gtF :: Float -> Float -> Bool "$1$ > $2$";
 
 semantic Position a = Pos a "POSITION";
 semantic Normal a = Norm a "NORMAL";
 semantic Color a = Col a "COLOR";
+semantic TexCoord0 a = Tex0 a "TEXCOORD0";
 
 true = Bool "true";
 false = Bool "false";

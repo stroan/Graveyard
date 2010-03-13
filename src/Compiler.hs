@@ -103,6 +103,7 @@ returnType t = t
 
 getTypeIdent (TypeCon c) = c
 getTypeIdent (TypeVar i) = i
+getTypeIdent (TypeParen p) = getTypeIdent p
 
 getFuncPattern (TypedFuncBind _ _ ps _) = ps
 
@@ -259,24 +260,38 @@ compileExpr i bind bexps expr@(TypeLoopExp l w s _) = do
 		      ++ wsrc ++
 		      ["while (!(" ++ wbind ++ ")) {"]
 		      ++ lsrc ++
-		      ["aVar = " ++ lbind ++ ";"
-		      ,"cVar++;"]
+		      [aVar ++ " = " ++ lbind ++ ";"
+		      ,cVar ++ "++;"]
 		      ++ wsrc ++
 		      ["}"]
 	    return (src, aVar, [])
   where makeTestExp = do
-	  a <- lookupFunc w i
-	  ps <- return (getFuncTypeParams (getFuncType a))
-	  let e1 = (TypeAppExp (TypeIdentExp (getIdentStr w) (getFuncType a)) (TypeIdentExp "a" (ps !! 0)) (getLeft (getFuncType a)))
-	      e2 = (TypeAppExp e1 (TypeIdentExp "c" (ps !! 1)) (TypeCon (IdentCon "Bool")))
-	  return e2
+	  if (isJust . (lookup w)) bexps
+             then do let (_, fps, fexp) = fromJust $ lookup w bexps
+                         ps = map getTPattType fps
+                         ftype = foldr (\x y -> TypeFunc x y) (getTExpType fexp) ps
+			 e1 = (TypeAppExp (TypeIdentExp (getIdentStr w) ftype) (TypeIdentExp "a" (ps !! 0)) (getLeft ftype))
+	                 e2 = (TypeAppExp e1 (TypeIdentExp "c" (ps !! 1)) (TypeCon (IdentCon "Bool")))
+                     return e2
+	     else do a <- lookupFunc w i
+		     ps <- return (getFuncTypeParams (getFuncType a))
+	             let e1 = (TypeAppExp (TypeIdentExp (getIdentStr w) (getFuncType a)) (TypeIdentExp "a" (ps !! 0)) (getLeft (getFuncType a)))
+	                 e2 = (TypeAppExp e1 (TypeIdentExp "c" (ps !! 1)) (TypeCon (IdentCon "Bool")))
+	             return e2
 
 	makeLoopExp = do
-	  a <- lookupFunc l i
-	  let ps = getFuncTypeParams (getFuncType a)
-	      e1 = (TypeAppExp (TypeIdentExp (getIdentStr l) (getFuncType a)) (TypeIdentExp "a" (ps !! 0)) (getLeft (getFuncType a)))
-	      e2 = (TypeAppExp e1 (TypeIdentExp "c" (ps !! 1)) (getTExpType expr))
-	  return e2
+	  if (isJust . (lookup l)) bexps
+             then do let (_, fps, fexp) = fromJust $ lookup l bexps
+                         ps = map getTPattType fps
+                         ftype = foldr (\x y -> TypeFunc x y) (getTExpType fexp) ps
+			 e1 = (TypeAppExp (TypeIdentExp (getIdentStr l) ftype) (TypeIdentExp "a" (ps !! 0)) (getLeft ftype))
+	                 e2 = (TypeAppExp e1 (TypeIdentExp "c" (ps !! 1)) (getTExpType expr))
+                     return e2
+             else do a <- lookupFunc l i
+	             let ps = getFuncTypeParams (getFuncType a)
+	                 e1 = (TypeAppExp (TypeIdentExp (getIdentStr l) (getFuncType a)) (TypeIdentExp "a" (ps !! 0)) (getLeft (getFuncType a)))
+	                 e2 = (TypeAppExp e1 (TypeIdentExp "c" (ps !! 1)) (getTExpType expr))
+	             return e2
 
 	getLeft (TypeFunc t t2) = t2
 
@@ -579,7 +594,7 @@ compile' i = do
 	  cps <- mapM compileFragment fs
 	  let s = concat $ map fst cps
 	      f = map snd cps
-	      te = ["};"]
+	      te = ["}"]
 	  return (ts ++ s ++ te, f)
 
 	compileFragment (stage, model, ident) = do
