@@ -44,7 +44,7 @@ doCompile content backend = do
 		      then do (_,s) <- return $ fromCompilerM tc
 			      putStrLn s
 		      else putStrLn $ fromCompilerME tc
-	    else putStrLn $ getParseE parseResult
+	    else putStrLn $ getParseE parseResult'
     else putStrLn $ getParseE parseResult
   where
 	isParseEOk (Ok _) = True

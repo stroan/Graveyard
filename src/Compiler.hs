@@ -181,10 +181,13 @@ compileExpr i bind bexps (TypeLiteralExp s _) = return ([], (getLiteralStr s), [
 compileExpr i bind bexps (TypeParenExp e _) = compileExpr i bind bexps e
 
 compileExpr i bind bexps e@(TypeIdentExp s t) = do
-  if not $ lookupFuncExists (IdentVar s) i 
-    then do b <- lookupBind (IdentVar s) bind
-	    return ([], b, [])
-    else compileFuncApp i bind bexps e
+  let bexists = isJust $ lookup (IdentVar s) bind
+  if bexists 
+     then do b <- lookupBind (IdentVar s) bind
+             return ([], b, [])
+     else if not $ lookupFuncExists (IdentVar s) i 
+             then fail "unknown ident"
+             else compileFuncApp i bind bexps e
 
 compileExpr i bind bexps expr@(TypeAppExp t t' _) = do
   func <- return $ getExpFunc t
@@ -248,7 +251,7 @@ compileExpr i bind bexps expr@(TypeLoopExp l w s _) = do
     then do let src = ssrc ++
 		      ["int " ++ cVar ++ " = 0;"] 
 		      ++ wsrc ++
-		      ["while (!(" ++ wbind ++ ")) {"]
+		      ["while (" ++ wbind ++ ") {"]
 		      ++ lsrc ++
 		      ["cVar++;"]
 		      ++ wsrc ++
@@ -258,7 +261,7 @@ compileExpr i bind bexps expr@(TypeLoopExp l w s _) = do
 		      ["int " ++ cVar ++ " = 0;"
 		      ,rStr ++ " " ++ aVar ++ " = " ++ sbind ++ ";"] 
 		      ++ wsrc ++
-		      ["while (!(" ++ wbind ++ ")) {"]
+		      ["while (" ++ wbind ++ ") {"]
 		      ++ lsrc ++
 		      [aVar ++ " = " ++ lbind ++ ";"
 		      ,cVar ++ "++;"]
