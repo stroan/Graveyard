@@ -1,10 +1,10 @@
-name: Ratava
+name: Citten
 version: 0.0.1
 Cabal-Version: >= 1.2
 build-type: Simple
 
-executable Ratava
-  executable: Ratava
+executable Citten
+  executable: Citten
   hs-source-dirs: src
   main-is: Main.hs
   build-depends: 
