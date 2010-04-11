@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Data.List
+import CmdLine
 import System
 import Lexer
 import Parser
@@ -54,8 +55,24 @@ doCompile content backend = do
 	getParseE (Failed s) = s
 	getParseE _ = undefined
 
+
+doParse = undefined
+
+doShowHelp = do
+  putStrLn "Citten 0.2.0"
+  putStrLn "Citten [-h] [-p] [-o <out>] <files>"
+  putStrLn "-h\tDisplay help."
+  putStrLn "-p\tOnly parse code files."
+
+doMain args
+  | isShowHelp args = doShowHelp
+  | isDoParse args  = doParse args
+
 main = do
-  args <- getArgs
-  backend <- readFile (args !! 1)
-  content <- readFile (args !! 0)
-  doCompile content backend
+  args <- parseArgs
+  doMain args
+  --args <- getArgs
+  --putStrLn $ show args ++ "\n"
+  --backend <- readFile (args !! 1)
+  --content <- readFile (args !! 0)
+  --runTest' (content ++ backend)
