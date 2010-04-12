@@ -9,6 +9,7 @@ import CodeGenerator
 import CompilerM
 import Lexer.Lexer
 import Parser.Parser
+import Parser.Pretty
 import TypeChecker.TypeChecker
 
 runTest' content = do
@@ -74,6 +75,8 @@ parseFile file = do
 printParseResult :: Handle -> (String, ParseE EffectModule) -> IO ()
 printParseResult ho (name, Ok e) = do
   hPutStrLn ho "======="
+  hPutStrLn ho ("Parse output for " ++ name)
+  hPutStrLn ho (prettyPrintAST e)
 
 printParseResult ho (name, Failed s) = do
   hPutStrLn ho "======="
