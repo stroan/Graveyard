@@ -1,13 +1,15 @@
 module Main (main) where
 
 import Data.List
-import CmdLine
 import System
-import Lexer
-import Parser
-import Compiler
-import TypeChecker
-import Types
+import System.IO
+
+import CmdLine
+import CodeGenerator
+import CompilerM
+import Lexer.Lexer
+import Parser.Parser
+import TypeChecker.TypeChecker
 
 runTest' content = do
   let lexResult = scanTokens content
@@ -55,24 +57,50 @@ doCompile content backend = do
 	getParseE (Failed s) = s
 	getParseE _ = undefined
 
+getOutFileHandle (Just n) = openFile n WriteMode
+getOutFileHandle Nothing = return stdout
 
-doParse = undefined
+getInFilesSafe args = do
+  let srcFiles = getSourceFiles args
+  if null srcFiles
+     then fail "No input files"
+     else return srcFiles
 
+parseFile file = do
+  contents <- readFile file
+  let t = scanTokens contents
+  return $ parseTokens t
+
+printParseResult :: Handle -> (String, ParseE EffectModule) -> IO ()
+printParseResult ho (name, Ok e) = do
+  hPutStrLn ho "======="
+
+printParseResult ho (name, Failed s) = do
+  hPutStrLn ho "======="
+  hPutStrLn ho ("Error parsing " ++ name)
+  hPutStrLn ho ("\t" ++ s)
+  hPutStrLn ho "======="
+
+doParse :: Maybe [CmdParameter] -> IO ()
+doParse args = do
+  ho <- getOutFileHandle (getOutFile args)
+  srcFiles <- getInFilesSafe args
+  srcParsed <- mapM parseFile srcFiles
+  mapM_ (printParseResult ho) (zip srcFiles srcParsed)
+
+doShowHelp :: IO ()
 doShowHelp = do
   putStrLn "Citten 0.2.0"
   putStrLn "Citten [-h] [-p] [-o <out>] <files>"
   putStrLn "-h\tDisplay help."
   putStrLn "-p\tOnly parse code files."
 
+doMain :: Maybe [CmdParameter] -> IO ()
 doMain args
   | isShowHelp args = doShowHelp
   | isDoParse args  = doParse args
+  | otherwise       = undefined
 
 main = do
   args <- parseArgs
   doMain args
-  --args <- getArgs
-  --putStrLn $ show args ++ "\n"
-  --backend <- readFile (args !! 1)
-  --content <- readFile (args !! 0)
-  --runTest' (content ++ backend)

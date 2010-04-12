@@ -1,4 +1,4 @@
-module TypeChecker
+module TypeChecker.TypeChecker
   (
   typeCheck
   ) where
@@ -10,7 +10,11 @@ import Control.Monad.Reader
 import Control.Monad.Writer
 import Data.List
 import Data.Maybe
+
 import Types
+import CompilerM
+import Parser.AST
+import TypeChecker.TypedAST
 
 data Environ = Environ [(Ident, Type)]
 	     deriving (Show, Eq)

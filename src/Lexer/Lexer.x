@@ -1,9 +1,9 @@
 {
-module Lexer
+module Lexer.Lexer
   ( scanTokens
   ) where
 
-import Types
+import Lexer.Tokens
 import Data.List
 }
 

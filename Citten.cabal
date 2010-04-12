@@ -14,4 +14,4 @@ executable Citten
     containers,
     mtl,
     MissingH
-  other-modules: Lexer, Parser
+  other-modules: Lexer.Lexer, Parser.Parser

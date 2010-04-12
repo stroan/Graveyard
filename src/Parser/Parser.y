@@ -1,9 +1,14 @@
 {
-module Parser 
-  ( parseTokens 
+module Parser.Parser 
+  ( parseTokens
+  , ParseE (..)
+  , EffectModule (..)
   ) where
 
 import Types
+import Lexer.Tokens
+import Parser.AST
+import Parser.ParseE
 }
 
 %name parseTokens

@@ -1,4 +1,4 @@
-module Compiler 
+module CodeGenerator 
   ( compile
   ) where
 
@@ -11,7 +11,10 @@ import Data.List
 import Data.Maybe
 import Data.String.Utils
 import qualified Data.Map as Map
+
 import Types
+import TypeChecker.TypedAST
+import CompilerM
 
 
 data CState = CState { cstateID :: Integer }
