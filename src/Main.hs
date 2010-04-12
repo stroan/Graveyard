@@ -8,55 +8,10 @@ import CmdLine
 import CodeGenerator
 import CompilerM
 import Lexer.Lexer
+import Parser.AST
 import Parser.Parser
 import Parser.Pretty
 import TypeChecker.TypeChecker
-
-runTest' content = do
-  let lexResult = scanTokens content
-  putStrLn $ show lexResult
-  putStrLn "---------------"
-  let parseResult = parseTokens lexResult
-  putStrLn $ show parseResult
-  putStrLn "---------------"
-  let tc = do { t <- typeCheck (getParse parseResult); c <- compile t; return (t,c) }
-  putStrLn $ show tc
-  putStrLn "---------------"
-  if wasCompSuccess tc
-    then do (_,s) <- return $ fromCompilerM tc
-	    putStrLn s
-    else return ()
-  where
-	isParseEOk (Ok _) = True
-	isParseEOk _ = False
-        getParse (Ok x) = x
-	getParse _ = undefined
-    
-doCompile content backend = do
-  let lexResult = scanTokens content
-  let parseResult = parseTokens lexResult
-  let lexResult' = scanTokens backend
-  let parseResult' = parseTokens lexResult'
-  if isParseEOk parseResult
-    then if isParseEOk parseResult' 
-	    then do let (EffectModule tlds) = getParse parseResult
-			(EffectModule tlds') = getParse parseResult'
-			tc = do t <- typeCheck (EffectModule $ tlds ++ tlds')
-				c <- compile t
-				return (t,c)
-		    if wasCompSuccess tc
-		      then do (_,s) <- return $ fromCompilerM tc
-			      putStrLn s
-		      else putStrLn $ fromCompilerME tc
-	    else putStrLn $ getParseE parseResult'
-    else putStrLn $ getParseE parseResult
-  where
-	isParseEOk (Ok _) = True
-	isParseEOk _ = False
-        getParse (Ok x) = x
-	getParse _ = undefined
-	getParseE (Failed s) = s
-	getParseE _ = undefined
 
 getOutFileHandle (Just n) = openFile n WriteMode
 getOutFileHandle Nothing = return stdout
@@ -71,6 +26,15 @@ parseFile file = do
   contents <- readFile file
   let t = scanTokens contents
   return $ parseTokens t
+
+parseFileSafe file = do
+  contents <- readFile file
+  let t = scanTokens contents
+      e = parseTokens t
+  if parseSuccess e
+     then return (getParseResult e)
+     else do hPutStrLn stderr (getParseError e)
+             fail "Parse error"
 
 printParseResult :: Handle -> (String, ParseE EffectModule) -> IO ()
 printParseResult ho (name, Ok e) = do
@@ -91,6 +55,19 @@ doParse args = do
   srcParsed <- mapM parseFile srcFiles
   mapM_ (printParseResult ho) (zip srcFiles srcParsed)
 
+doCompile' :: Maybe [CmdParameter] -> IO ()
+doCompile' args = do
+  ho <- getOutFileHandle (getOutFile args)
+  srcFiles <- getInFilesSafe args
+  srcParsed <- mapM parseFileSafe srcFiles
+  let m = foldl mergeModules (head srcParsed) (tail srcParsed)
+      compiled = do { a <- typeCheck m; compile a }
+  if wasCompSuccess compiled
+     then do hPutStr ho (fromCompilerM compiled)
+             hClose ho
+     else do hPutStrLn stderr (fromCompilerME compiled)
+             fail "Compilation error"
+
 doShowHelp :: IO ()
 doShowHelp = do
   putStrLn "Citten 0.2.0"
@@ -102,7 +79,7 @@ doMain :: Maybe [CmdParameter] -> IO ()
 doMain args
   | isShowHelp args = doShowHelp
   | isDoParse args  = doParse args
-  | otherwise       = undefined
+  | otherwise       = doCompile' args
 
 main = do
   args <- parseArgs

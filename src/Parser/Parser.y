@@ -2,6 +2,7 @@
 module Parser.Parser 
   ( parseTokens
   , ParseE (..)
+  , parseSuccess, getParseResult, getParseError
   , EffectModule (..)
   ) where
 
@@ -117,8 +118,8 @@ DataParams :: { [Ident] }
   | ident                    { [IdentVar $1] }
 
 FuncBind :: { TopLevelDecl }
-  : ident FuncParams '=' Expr ';'   { FuncBindDecl (IdentVar $1) $2 $4 }
-  | ident '=' Expr ';'              { FuncBindDecl (IdentVar $1) [] $3 }
+  : ident FuncParams '=' Expr ';'   { NewFuncBindDecl (IdentVar $1) (foldl (\e p -> LambdaExp p e) $4 $2) }
+  | ident '=' Expr ';'              { NewFuncBindDecl (IdentVar $1) $3 }
 
 FuncParams :: { [ Pattern ] }
   : AFuncParam FuncParams         { $1:$2 }

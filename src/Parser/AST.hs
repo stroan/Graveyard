@@ -4,7 +4,7 @@ module Parser.AST
   , Pattern (..), Literal (..), Constructor (..)
   , isDataDecl, isBaseData, isBaseFunc, isSemantic
   , isFuncBind, isFuncType, isParamDecl, isTechniqueDecl
-  , getLiteralStr
+  , getLiteralStr, mergeModules
   ) where 
 
 import Types
@@ -14,6 +14,7 @@ data EffectModule = EffectModule [TopLevelDecl]
 
 data TopLevelDecl = DataDecl Ident [Ident] Constructor 
                   | FuncBindDecl Ident [Pattern] Exp
+                  | NewFuncBindDecl Ident Exp
                   | FuncTypeDecl Ident Type
                   | BaseTypeDecl Ident String (Maybe (Constructor, String)) Bool
                   | BaseFuncDecl Ident Type String
@@ -34,6 +35,7 @@ data Exp = LiteralExp Literal
 	 | LetExp Ident [Pattern] Exp Exp
 	 | IfExp Exp Exp Exp
 	 | LoopExp Ident Ident Exp
+         | LambdaExp Pattern Exp
            deriving (Show, Eq)
 
 data Literal = LiteralInt String
@@ -79,3 +81,5 @@ isTechniqueDecl _ = False
 getLiteralStr (LiteralInt s) = s
 getLiteralStr (LiteralString s) = s
 getLiteralStr (LiteralReal s) = s
+
+mergeModules (EffectModule t) (EffectModule t') = EffectModule (t ++ t')

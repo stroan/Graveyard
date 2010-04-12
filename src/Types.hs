@@ -2,6 +2,7 @@ module Types
   ( Type (..), Kind (..), Ident (..)
   , normaliseType, getIdentStr, getTypeCon
   , getTypeParams, isGenType, isLexType
+  , prettyTypeString
   ) where
 
 
@@ -45,3 +46,11 @@ isLexType (IdentCon "Real") = True
 isLexType (IdentCon "Integer") = True
 isLexType (IdentCon "String") = True
 isLexType _ = False
+
+prettyTypeString (TypeCon con) = getIdentStr con
+prettyTypeString (TypeVar var) = getIdentStr var
+prettyTypeString (TypeFunc t t') = (prettyTypeString t) ++ " -> (" ++ (prettyTypeString t') ++ ")"
+prettyTypeString (TypeParen t) = "(" ++ (prettyTypeString t) ++ ")"
+prettyTypeString (TypeApp t t') = (prettyTypeString t) ++ " " ++ (prettyTypeString t')
+prettyTypeString (TypeId i) = "?" ++ (show i)
+prettyTypeString (TypeGen ident t) = "forall " ++ (getIdentStr ident) ++ ". " ++ (prettyTypeString t) 
