@@ -36,6 +36,7 @@ data TypeExp = TypeLiteralExp Literal Type
          | TypeTupleExp [TypeExp] Type
 	 | TypeIfExp TypeExp TypeExp TypeExp Type
 	 | TypeLoopExp Ident Ident TypeExp Type
+         | TypeLambdaExp TypePattern TypeExp
            deriving (Show, Eq)
 
 data TypePattern = TypeIdentPattern String Type

@@ -306,6 +306,11 @@ checkFuncs m env = do
 	  v <- freshTypeVar
 	  ts <- mapM makeTypedExp es
 	  return (TypeTupleExp ts v)
+        makeTypedExp (LambdaExp p e) = do
+          v <- freshTypeVar
+          p' <- makeTypedPattern p
+          e' <- makeTypedExp e
+          return (TypeLambdaExp p' e' v)
 
 applySubsToTFunc s (TypedFuncBind i t ps e) = 
   let t' = applySubstitution s t
