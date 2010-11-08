@@ -25,12 +25,12 @@ import Control.Monad.Error
 -- Error Type
 --
 
-data EvalError = ErrDefault String
+data EvalError = ErrDefault (Maybe SourcePos) String
                  deriving (Show)
 
 instance Error EvalError where
-    noMsg  = ErrDefault "ERROR"
-    strMsg = ErrDefault
+    noMsg  = ErrDefault Nothing "ERROR"
+    strMsg = ErrDefault Nothing
 
 type ThrowsError = Either EvalError
 
@@ -47,7 +47,7 @@ eval v@(ExprVariable _ _) = return v
 eval v@(ExprList [ExprVariable "quote" _, d] _) = return d
 eval v@(ExprList (head:tail) _) = do args <- mapM eval tail
                                      apply head args
-eval _ = throwError $ ErrDefault "Can't eval"
+eval _ = throwError $ ErrDefault Nothing "Can't eval"
 
 --
 -- Apply function
@@ -55,8 +55,8 @@ eval _ = throwError $ ErrDefault "Can't eval"
 
 apply :: Expression SourcePos -> [Expression SourcePos] -> ThrowsError (Expression SourcePos)
 apply (ExprVariable func pos) args = maybe err (\f -> f pos args) $ lookup func primOps
-                  where err = (throwError $ ErrDefault "No such function")
-apply _ _ = throwError $ ErrDefault "Can't apply"
+                  where err = (throwError $ ErrDefault (Just pos) "No such function")
+apply _ _ = throwError $ ErrDefault Nothing "Can't apply"
 
 
 getSourcePos :: Expression SourcePos -> SourcePos
@@ -92,8 +92,8 @@ numOne :: NumToken
 numOne = NumReal (NumRealInteger 1)
 
 toNum :: Expression SourcePos -> ThrowsError NumToken
-toNum (ExprLiteral (LiteralNum n) _) = return n
-toNum _ = throwError $ ErrDefault "Not a number"
+toNum (ExprLiteral (LiteralNum n) p) = return n
+toNum e = throwError $ ErrDefault (Just $ getSourcePos e) "Not a number"
 
 addition :: PrimitiveOp
 addition pos args = do args' <- mapM toNum args
