@@ -13,7 +13,9 @@
 -----------------------------------------------------------------------------
 
 module Parser (
-    documentParser
+    documentParser,
+    ParserExpression,
+    module Parser.AST
 ) where
 
 import Text.ParserCombinators.Parsec
@@ -21,6 +23,8 @@ import Control.Monad
 import Data.Maybe
 
 import Parser.AST
+
+type ParserExpression = Expression (Maybe SourcePos) ()
 
 --
 -- Helper functions
@@ -34,10 +38,10 @@ tryChoices a = choice (map try a)
 applyNumSign NumNeg num = - num
 applyNumSign _ num = num
 
-addPosition :: CharParser st (SourcePos -> a) -> CharParser st a
+addPosition :: CharParser st (Maybe SourcePos -> a) -> CharParser st a
 addPosition a = do pos <- getPosition
                    v <- a
-                   return $ v pos
+                   return $ v (Just pos)
 
 
 --
@@ -147,7 +151,7 @@ numDigit Base10 = digit
 --
 -- Parser functions
 --
-expression :: CharParser st (Expression SourcePos)
+expression :: CharParser st ParserExpression
 expression = exprLiteral <|>
              exprVariable <|>
              exprQuote <|>
@@ -157,11 +161,11 @@ expression = exprLiteral <|>
                   return a
                 }
 
-exprVariable :: CharParser st (Expression SourcePos)
+exprVariable :: CharParser st ParserExpression
 exprVariable = addPosition $ do {v <- variable;
                                  return $ ExprVariable v}
 
-exprLiteral :: CharParser st (Expression SourcePos)
+exprLiteral :: CharParser st ParserExpression
 exprLiteral = addPosition $ do {d <- choice [exprSelfEvaluating];
                                 return $ ExprLiteral d}
 
@@ -173,25 +177,24 @@ exprSelfEvaluating = tryChoices $  [makeLit (boolean, LiteralBool),
                      where makeLit (p,c) = do l <- p
                                               return $ c l
 
-exprQuote :: CharParser st (Expression SourcePos)
+exprQuote :: CharParser st ParserExpression
 exprQuote = addPosition $ do {char '\'';
                               body <- expression;
                               return $ (\p -> ExprList [ExprVariable "quote" p,body] p)
                              }
 
-exprList :: CharParser st (Expression SourcePos)
+exprList :: CharParser st ParserExpression
 exprList = addPosition $ do { a <- sepBy expression interspaceToken;
                               return $ ExprList a }
 
-exprDotList :: CharParser st (Expression SourcePos)
+exprDotList :: CharParser st ParserExpression
 exprDotList = addPosition $ do {a <- endBy expression whitespace;
                                 char '.'; whitespace;
                                 b <- expression;
                                 return $ ExprDotList (a ++ [b])}
 
-documentParser :: CharParser st [Expression SourcePos]
-documentParser = do pos <- getPosition
-                    es <- manyTill ( (comment >> return Nothing) <|>
+documentParser :: CharParser st [ParserExpression]
+documentParser = do es <- manyTill ( (comment >> return Nothing) <|>
                                      (whitespace >> return Nothing) <|>
                                      (do { e <- expression; return $ Just e }) ) eof
                     let es' = filter isJust es

@@ -22,6 +22,7 @@ module Parser.AST (
 ) where
 
 import Data.List
+import Data.IORef
 
 data NumBases = Base10
 data NumSign = NumPos | NumNeg
@@ -31,10 +32,12 @@ data NumRealRep = NumRealInteger Integer
 
 data NumToken = NumReal NumRealRep
 
-data Expression a = ExprVariable String a
+data Expression a b = ExprVariable String a
                   | ExprLiteral Literal a
-                  | ExprList [Expression a] a
-                  | ExprDotList [Expression a] a
+                  | ExprList [Expression a b] a
+                  | ExprDotList [Expression a b] a
+                  | ExprFunc [Expression a b] [Expression a b] a b
+                  | ExprBuiltinFunc String a
 
 data Literal = LiteralBool Bool
              | LiteralString String
@@ -48,7 +51,7 @@ instance Show NumRealRep where
 instance Show NumToken where
     show (NumReal r) = show r
 
-instance Show (Expression a) where
+instance Show (Expression a b) where
     show (ExprVariable s _) = s
     show (ExprLiteral l _) = show l
     show (ExprList l _) = let exprs = map show l
@@ -59,6 +62,10 @@ instance Show (Expression a) where
                              in "(" ++ str ++ ")"
                              where buildStr (a:[]) = ". " ++ a
                                    buildStr (a:b) = a ++ " " ++ buildStr b
+    show (ExprBuiltinFunc s _) = show $ "<builtin: " ++ s ++ ">"
+    show (ExprFunc as bs _ _) = show $ "(lambda (" ++ args ++ ") (" ++ body ++ "))"
+                                where args = intercalate " " (map show as)
+                                      body = intercalate " " (map show bs)
 
 instance Show Literal where
     show (LiteralBool True) = "#t"
@@ -66,3 +73,5 @@ instance Show Literal where
     show (LiteralString s) = show s
     show (LiteralChar c) = "#\\" ++ [c]
     show (LiteralNum n) = show n
+
+
