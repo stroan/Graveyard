@@ -29,8 +29,10 @@ data NumSign = NumPos | NumNeg
 
 data NumRealRep = NumRealInteger Integer
                 | NumRealDecimal Float
+                deriving (Eq)
 
 data NumToken = NumReal NumRealRep
+              deriving (Eq)
 
 data Expression a b = ExprVariable String a
                   | ExprLiteral Literal a
@@ -43,6 +45,14 @@ data Literal = LiteralBool Bool
              | LiteralString String
              | LiteralChar Char
              | LiteralNum NumToken
+             deriving (Eq)
+
+instance Eq (Expression a b) where
+    (ExprVariable a _) == (ExprVariable b _) = a == b
+    (ExprLiteral a _) == (ExprLiteral b _) = a == b
+    (ExprList a _) == (ExprList b _) = a == b
+    (ExprDotList a _) == (ExprDotList b _) = a == b
+    _ == _ = False
 
 instance Show NumRealRep where
     show (NumRealInteger i) = show i
