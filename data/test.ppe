@@ -1,4 +1,8 @@
+(eval (load "../data/test2.ppe"))
+
 (define a 2)
 (define != (lambda (a b) ((not (== a b)))))
 (print "hello" "world" a (not #t) (== 1 1.0) (< 1 2))
 (print (and #t #f) (car (cdr (cons 1 '(2 3)))))
+
+(print (cadddr '(1 2 3 4)))

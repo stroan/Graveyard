@@ -156,7 +156,9 @@ expression = exprLiteral <|>
              exprVariable <|>
              exprQuote <|>
              do { char '(';
-                  a <- (try exprList) <|> exprDotList;
+                  many whitespace;
+                  a <- (try exprDotList) <|> exprList;
+                  many whitespace;
                   char ')';
                   return a
                 }
@@ -184,7 +186,8 @@ exprQuote = addPosition $ do {char '\'';
                              }
 
 exprList :: CharParser st ParserExpression
-exprList = addPosition $ do { a <- sepBy expression interspaceToken;
+exprList = addPosition $ do { a <- (try $ sepBy expression interspaceToken) <|>
+                                   (endBy expression interspaceToken);
                               return $ ExprList a }
 
 exprDotList :: CharParser st ParserExpression

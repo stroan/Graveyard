@@ -140,6 +140,12 @@ eval env v@(ExprVariable s p)
                       (lookup s builtinFuncs)
            else getVar env v
 eval env v@(ExprList [] _) = return v
+eval env v@(ExprList [ExprVariable "eval" _, l] p)
+   =  do l' <- eval env l
+         case l' of
+            ExprList m _ -> do a <- mapM (eval env) m
+                               return $ last a
+            otherwise    ->  throwError $ ErrDefault p "Can only eval list"
 eval env v@(ExprList [ExprVariable "quote" _, d] _) = return d
 eval env v@(ExprList [ExprVariable "define" p, name, form] _)
    = do f <- eval env form
@@ -238,6 +244,11 @@ toNum e = throwError $ ErrDefault (getSourcePos e) "Not a number"
 toString :: InterpExpression -> ThrowsError String
 toString (ExprLiteral (LiteralString n) p) = return n
 toString e = return $ show e
+
+concatStr :: PrimitiveOp
+concatStr p args = do as <- mapM toString args
+                      let astr = foldr (++) "" as
+                      return $ ExprLiteral (LiteralString $ astr) p
 
 --
 -- Boolean operations
@@ -346,7 +357,8 @@ primOps = [("+", addition),
            ("or", orBool),
            ("cons", cons),
            ("car", car),
-           ("cdr", cdr)]
+           ("cdr", cdr),
+           ("concat", concatStr)]
 
 --
 -- IO Ops
@@ -357,8 +369,20 @@ printOp p as = do a <- liftThrows $ mapM toString as
                   liftIO $ putStrLn $ intercalate "," a
                   return $ ExprLiteral (LiteralBool True) p
 
+
+load :: IOPrimitiveOp
+load p [d]
+   = do name <- liftThrows $ toString d
+        contents <- liftIO $ readFile name
+        pDoc <- return $ runParser documentParser () name contents
+        case pDoc of
+           Left e -> throwError $ ErrDefault p ("Cound not parse file " ++ name ++ "\n" ++ show e)
+           Right ast -> return $ ExprList (map toInterpExpression ast) p
+load p _ = throwError $ ErrDefault p "load takes exactly two operands"
+
 ioOps :: [(String, IOPrimitiveOp)]
-ioOps = [("print", printOp)]
+ioOps = [("print", printOp),
+         ("load", load)]
 
 builtinFuncs :: [(String, IOPrimitiveOp)]
 builtinFuncs = liftedOps ++ ioOps
