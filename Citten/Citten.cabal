@@ -1,0 +1,17 @@
+name: Citten
+version: 0.0.1
+Cabal-Version: >= 1.2
+build-type: Simple
+
+executable Citten
+  executable: Citten
+  hs-source-dirs: src
+  main-is: Main.hs
+  build-depends: 
+    base >= 3 && < 6,
+    haskell98,
+    array,
+    containers,
+    mtl,
+    MissingH
+  other-modules: Lexer.Lexer, Parser.Parser
